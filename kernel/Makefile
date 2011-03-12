@@ -10,6 +10,7 @@ STACK		= 64
 TASKS		= 8
 SEMAPHORES	= 8
 BAUD		= 9600
+ADCPRESCALE	= 8
 
 # You should not have to change anything below here.
 
@@ -20,7 +21,8 @@ SIZE		= avr-size
 OBJS		= ${SRCS:.c=.o}
 CFLAGS		= -Wall -Os -mmcu=${MCU_TARGET} \
 		-DF_CPU=${F_CPU} -DPRESCALE=${PRESCALE} -DBAUD=${BAUD} \
-		-DSTACK=${STACK} -DTASKS=${TASKS} -DSEMAPHORES=${SEMAPHORES}
+		-DSTACK=${STACK} -DTASKS=${TASKS} -DSEMAPHORES=${SEMAPHORES} \
+		-DADCPRESCALE=${ADCPRESCALE}
 LDFLAGS		= -Wl,-Map,${PROG}.map
 
 .SUFFIXES:	.elf .lst .hex .bin .srec .ehex .ebin .esrec
