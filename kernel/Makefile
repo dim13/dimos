@@ -10,7 +10,7 @@ STACK		= 64
 TASKS		= 8
 SEMAPHORES	= 8
 BAUD		= 9600
-ADCPRESCALE	= 8
+ADCPRESCALE	= 16
 
 # You should not have to change anything below here.
 
