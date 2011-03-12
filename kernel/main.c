@@ -46,9 +46,9 @@ main()
 
 	task(heartbeat, STACK, SEC(0), MSEC(10), 0);
 	task(rgb, STACK, SEC(0), MSEC(10), &rgbargs[0]);
-	task(pwm, STACK, SEC(0), MSEC(10), &pwmargs[0]);
-	task(pwm, STACK, SEC(0), MSEC(10), &pwmargs[1]);
-	task(pwm, STACK, SEC(0), MSEC(10), &pwmargs[2]);
+	task(cpwm, STACK, SEC(0), MSEC(10), &pwmargs[0]);
+	task(cpwm, STACK, SEC(0), MSEC(10), &pwmargs[1]);
+	task(cpwm, STACK, SEC(0), MSEC(10), &pwmargs[2]);
 	task(lcd, STACK, MSEC(40), SEC(1), 0);
 	task(adc, STACK, MSEC(0), MSEC(20), &adcarg[0]);
 

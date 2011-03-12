@@ -53,7 +53,7 @@ rgb(void *arg)
 }
 
 void
-pwm(void *arg)
+cpwm(void *arg)
 {
 #define	SCALE 4
 	struct pwmarg *a = (struct pwmarg *)arg;

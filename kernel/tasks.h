@@ -40,7 +40,7 @@ void	init_uart(void);
 
 void	heartbeat(void *);
 void	rgb(void *);
-void	pwm(void *);
+void	cpwm(void *);
 void	lcd(void *);
 void	adc(void *);
 
