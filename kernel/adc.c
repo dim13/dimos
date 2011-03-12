@@ -20,39 +20,30 @@
 #include "kernel.h"
 #include "tasks.h"
 
-uint8_t	red, green, blue;
-uint16_t adcval;
-
-struct rgbarg rgbargs[] = {
-	{ &red, &green, &blue },
-};
-
-struct pwmarg pwmargs[] = {
-	{ &red, PB2, 0, 0 },
-	{ &green, PB3, 0, 0 },
-	{ &blue, PB4, 0, 0 },
-};
-
-struct adcarg adcarg[] = {
-	{ 0, 0, 0, &adcval },
-};
-
-int
-main()
+uint16_t
+rdadc(uint8_t ch)
 {
-	init(STACK);
+	ADMUX &= ~0x07;
+	ADMUX |= (ch & 0x07);
+	ADCSRA |= _BV(ADSC);
+	loop_until_bit_is_set(ADCSRA, ADSC);
 
-	init_uart();
+	return ADCW;
+}
 
-	task(heartbeat, STACK, SEC(0), MSEC(10), 0);
-	task(rgb, STACK, SEC(0), MSEC(10), &rgbargs[0]);
-	task(pwm, STACK, SEC(0), MSEC(10), &pwmargs[0]);
-	task(pwm, STACK, SEC(0), MSEC(10), &pwmargs[1]);
-	task(pwm, STACK, SEC(0), MSEC(10), &pwmargs[2]);
-	task(lcd, STACK, MSEC(40), SEC(1), 0);
-	task(adc, STACK, MSEC(0), MSEC(20), &adcarg[0]);
+void
+adc(void *arg)
+{
+	struct adcarg *a = (struct adcarg *)arg;
+	a->r = release();
+	a->d = deadline();
 
-	for (;;);
+	/* prescale 8 */
+	ADCSRA |= (_BV(ADEN) | _BV(ADFR) | _BV(ADPS1) | _BV(ADPS0));
 
-	return 0;
+	for (;;) {
+		*a->value = rdadc(a->channel);
+		a->r = a->d += MSEC(20);
+		update(a->r, a->d);
+	}
 }

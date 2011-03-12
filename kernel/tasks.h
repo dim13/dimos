@@ -29,11 +29,19 @@ struct pwmarg {
 	uint32_t r;
 };
 
+struct adcarg {
+	uint32_t d;
+	uint32_t r;
+	uint8_t channel;
+	uint16_t *value;
+};
+
 void	init_uart(void);
 
 void	heartbeat(void *);
 void	rgb(void *);
 void	pwm(void *);
 void	lcd(void *);
+void	adc(void *);
 
 #endif
