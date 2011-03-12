@@ -167,13 +167,19 @@ lcd(void *arg)
 	/* entry mode */
 	write_cmd(ENTRY_MODE_SET | INC_DDRAM, 39);
 
-	mvputs(0, 0, "Task");
+	snooze(100);
+
+	mvputs(0, 0, "ADC0");
 	mvputs(1, 0, "Time");
 
 	for (;;) {
-		t = previous() - 1;	/* 0 is idle */
+		extern uint16_t adcval;
+		/*
+		t = previous() - 1;	// 0 is idle
 		for (i = 0; i < TASKS; i++)
 			mvputch(0, 5 + i, t == i ? '1' + t : '-');
+		 */
+		mvputs(0, 5, itohex(adcval));
 
 		mvputs(1, 5, itohex(now()));
 
