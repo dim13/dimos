@@ -38,8 +38,7 @@ adc(void *arg)
 	a->r = release();
 	a->d = deadline();
 
-	/* prescale 8 */
-	ADCSRA |= (_BV(ADEN) | _BV(ADFR) | _BV(ADPS1) | _BV(ADPS0));
+	ADCSRA |= (_BV(ADEN) | _BV(ADFR) | ADC_FLAGS);
 
 	for (;;) {
 		*a->value = rdadc(a->channel);
