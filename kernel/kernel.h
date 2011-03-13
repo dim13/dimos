@@ -57,26 +57,6 @@
 #warning "invalid PRESCALE value"
 #endif
 
-#if (ADCPRESCALE == 1)
-#define ADC_FLAGS 0
-#elif (ADCPRESCALE == 2)
-#define ADC_FLAGS _BV(ADPS0)
-#elif (ADCPRESCALE == 4)
-#define ADC_FLAGS _BV(ADPS1)
-#elif (ADCPRESCALE == 8)
-#define ADC_FLAGS (_BV(ADPS1) | _BV(ADPS0))
-#elif (ADCPRESCALE == 16)
-#define ADC_FLAGS _BV(ADPS2)
-#elif (ADCPRESCALE == 32)
-#define ADC_FLAGS (_BV(ADPS2) | _BV(ADPS0))
-#elif (ADCPRESCALE == 64)
-#define ADC_FLAGS (_BV(ADPS2) | _BV(ADPS1))
-#elif (ADCPRESCALE == 128)
-#define ADC_FLAGS (_BV(ADPS2) | _BV(ADPS1) | _BV(ADPS0))
-#else
-#warning "invalid ADCPRESCALE value"
-#endif
-
 #define SEC(T)	((uint32_t)((T) * (F_CPU / PRESCALE)))
 #define MSEC(T)	((uint32_t)(T) * ((F_CPU / 1000) / PRESCALE))
 #define USEC(T)	((uint32_t)(T) * ((F_CPU / 1000000) / PRESCALE))

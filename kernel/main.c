@@ -21,21 +21,16 @@
 #include "tasks.h"
 
 uint8_t	red, green, blue;
-uint16_t adcval;
+uint16_t adcval[ADCCHANNELS];
 
-struct rgbarg rgbargs[] = {
-	{ &red, &green, &blue },
-};
-
+struct rgbarg rgbargs = { &red, &green, &blue };
 struct pwmarg pwmargs[] = {
-	{ &red, PB2, 0, 0 },
-	{ &green, PB3, 0, 0 },
-	{ &blue, PB4, 0, 0 },
+	{ &red, PB2 },
+	{ &green, PB3 },
+	{ &blue, PB4 }
 };
-
-struct adcarg adcarg[] = {
-	{ 0, 0, 0, &adcval },
-};
+struct adcarg adcarg = { adcval };
+struct lcdarg lcdarg = { 0, 0, adcval };
 
 int
 main()
@@ -45,12 +40,12 @@ main()
 	init_uart();
 
 	task(heartbeat, STACK, SEC(0), MSEC(10), 0);
-	task(rgb, STACK, SEC(0), MSEC(10), &rgbargs[0]);
+	task(rgb, STACK, SEC(0), MSEC(10), &rgbargs);
 	task(cpwm, STACK, SEC(0), MSEC(10), &pwmargs[0]);
 	task(cpwm, STACK, SEC(0), MSEC(10), &pwmargs[1]);
 	task(cpwm, STACK, SEC(0), MSEC(10), &pwmargs[2]);
-	task(lcd, STACK, MSEC(40), SEC(1), 0);
-	task(adc, STACK, MSEC(0), MSEC(20), &adcarg[0]);
+	task(lcd, STACK, MSEC(40), SEC(1), &lcdarg);
+	task(adc, STACK, MSEC(0), MSEC(20), &adcarg);
 
 	for (;;);
 

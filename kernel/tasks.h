@@ -18,6 +18,29 @@
 #ifndef __TASKS_H
 #define __TASKS_H
 
+#define ADCCHANNELS 6
+#define ADCPRESCALE 32
+
+#if (ADCPRESCALE == 1)
+#define ADC_FLAGS 0
+#elif (ADCPRESCALE == 2)
+#define ADC_FLAGS _BV(ADPS0)
+#elif (ADCPRESCALE == 4)
+#define ADC_FLAGS _BV(ADPS1)
+#elif (ADCPRESCALE == 8)
+#define ADC_FLAGS (_BV(ADPS1) | _BV(ADPS0))
+#elif (ADCPRESCALE == 16)
+#define ADC_FLAGS _BV(ADPS2)
+#elif (ADCPRESCALE == 32)
+#define ADC_FLAGS (_BV(ADPS2) | _BV(ADPS0))
+#elif (ADCPRESCALE == 64)
+#define ADC_FLAGS (_BV(ADPS2) | _BV(ADPS1))
+#elif (ADCPRESCALE == 128)
+#define ADC_FLAGS (_BV(ADPS2) | _BV(ADPS1) | _BV(ADPS0))
+#else
+#warning "invalid ADCPRESCALE value"
+#endif
+
 struct rgbarg {
 	uint8_t *r, *g, *b;
 };
@@ -25,15 +48,16 @@ struct rgbarg {
 struct pwmarg {
 	uint8_t *value;
 	uint8_t pin;
-	uint32_t d;
-	uint32_t r;
 };
 
 struct adcarg {
-	uint32_t d;
-	uint32_t r;
-	uint8_t channel;
 	uint16_t *value;
+};
+
+struct lcdarg {
+	char *first;
+	char *second;
+	uint16_t *adc;
 };
 
 void	init_uart(void);

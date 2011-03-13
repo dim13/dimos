@@ -145,6 +145,7 @@ itohex(uint32_t x)
 void
 lcd(void *arg)
 {
+	struct lcdarg *a = (struct lcdarg *)arg;
 	uint8_t i, t;
 
 	PORTDIR |= (_BV(DATA) | _BV(CLOCK) | _BV(E));
@@ -167,21 +168,21 @@ lcd(void *arg)
 	/* entry mode */
 	write_cmd(ENTRY_MODE_SET | INC_DDRAM, 39);
 
-	snooze(100);
+	home();
 
 	mvputs(0, 0, "ADC0");
-	mvputs(1, 0, "Time");
+	mvputs(1, 0, "ADC1");
 
 	for (;;) {
-		extern uint16_t adcval;
 		/*
 		t = previous() - 1;	// 0 is idle
 		for (i = 0; i < TASKS; i++)
 			mvputch(0, 5 + i, t == i ? '1' + t : '-');
-		 */
-		mvputs(0, 5, itohex(adcval));
 
 		mvputs(1, 5, itohex(now()));
+		 */
+		mvputs(0, 5, itohex(a->adc[0]));
+		mvputs(1, 5, itohex(a->adc[1]));
 
 		lcdargs.r = lcdargs.d + MSEC(100);
 		lcdargs.d += MSEC(50);

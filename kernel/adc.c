@@ -20,13 +20,15 @@
 #include "kernel.h"
 #include "tasks.h"
 
+#define MUXMASK	0x07
+
 uint16_t
 rdadc(uint8_t ch)
 {
-	ADMUX &= ~0x07;
-	ADMUX |= (ch & 0x07);
+	ADMUX &= ~MUXMASK;
+	ADMUX |= (ch & MUXMASK);
 	ADCSRA |= _BV(ADSC);
-	loop_until_bit_is_set(ADCSRA, ADSC);
+	loop_until_bit_is_clear(ADCSRA, ADSC);
 
 	return ADCW;
 }
@@ -35,14 +37,17 @@ void
 adc(void *arg)
 {
 	struct adcarg *a = (struct adcarg *)arg;
-	a->r = release();
-	a->d = deadline();
+	uint32_t r = release();
+	uint32_t d = deadline();
+	uint8_t i;
 
-	ADCSRA |= (_BV(ADEN) | _BV(ADFR) | ADC_FLAGS);
+	ADCSRA |= (_BV(ADEN) | ADC_FLAGS);
+	/* ADMUX |= _BV(REFS0); */
 
 	for (;;) {
-		*a->value = rdadc(a->channel);
-		a->r = a->d += MSEC(20);
-		update(a->r, a->d);
+		for (i = 0; i < ADCCHANNELS; i++)
+			a->value[i] = rdadc(i);
+		r = d += MSEC(1);
+		update(r, d);
 	}
 }
