@@ -22,14 +22,6 @@
 
 void hsv(uint8_t *, uint8_t *, uint8_t *, uint16_t, uint8_t, uint8_t);
 
-/*
-struct pwmarg pwmargs[] = {
-	{ &red, PB2, 0, 0 },
-	{ &green, PB3, 0, 0 },
-	{ &blue, PB4, 0, 0 },
-};
- */
-
 void
 rgb(void *arg)
 {
@@ -57,8 +49,8 @@ cpwm(void *arg)
 {
 #define	SCALE 4
 	struct pwmarg *a = (struct pwmarg *)arg;
-	a->d = deadline();
-	a->r = release();
+	uint32_t d = deadline();
+	uint32_t r = release();
 
 	DDRB |= _BV(a->pin);
 	PORTB &= ~_BV(a->pin);
@@ -66,14 +58,14 @@ cpwm(void *arg)
 	for (;;) {
 		if (*a->value > 0) {
 			PORTB |= _BV(a->pin);
-			a->r = a->d += USEC(*a->value << SCALE);
-			update(a->r, a->d);
+			r = d += USEC(*a->value << SCALE);
+			update(r, d);
 		}
 
 		if (*a->value < 255) {
 			PORTB &= ~_BV(a->pin);
-			a->r = a->d += USEC((255 - *a->value) << SCALE);
-			update(a->r, a->d);
+			r = d += USEC((255 - *a->value) << SCALE);
+			update(r, d);
 		}
 	}
 }
