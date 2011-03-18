@@ -85,8 +85,7 @@ ppm(void *arg)
 		/* sync frame */
 		ON;
 		//r = d += USEC(22500) - MSEC(t) / 0x3ff - MSEC(ADCCHANNELS) - USEC(300);
-		//r = d += MSEC(20) - MSEC(t) / 0x3ff - MSEC(ADCCHANNELS) - USEC(300);
-		r = d += USEC(22500) - MSEC(t >> 2) / 0xff - MSEC(ADCCHANNELS) - USEC(300);
+		r = d += MSEC(20) - MSEC(t) / 0x3ff - MSEC(ADCCHANNELS) - USEC(300);
 		update(r, d);
 
 		for (i = 0; i < ADCCHANNELS; i++) {
@@ -98,7 +97,7 @@ ppm(void *arg)
 
 			/* channel frame 0.7..1.7ms high */
 			ON;
-			r = d += USEC(700) + MSEC(a->value[i] >> 2) / 0xff;
+			r = d += USEC(700) + MSEC(a->value[i]) / 0x3ff;
 			update(r, d);
 		}
 		signal(0);
