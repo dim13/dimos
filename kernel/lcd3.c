@@ -126,10 +126,27 @@ itoa(int32_t n)
 	return s;
 }
 
+static char hex[] = "0123456789ABCDEF";
+
 static char *
-itohex(uint32_t x)
+itohex16(uint16_t x)
 {
-	static char hex[] = "0123456789ABCDEF";
+	static char buf[5];
+	char *s = &buf[4];
+	uint8_t i;
+
+	*s = '\0';
+
+	for (i = 0; i < 16; i += 4)
+		*--s = hex[(x >> i) & 0x0f];
+
+	return s;
+}
+
+
+static char *
+itohex32(uint32_t x)
+{
 	static char buf[9];
 	char *s = &buf[8];
 	uint8_t i;
@@ -170,9 +187,6 @@ lcd(void *arg)
 
 	home();
 
-	mvputs(0, 0, "ADC0");
-	mvputs(1, 0, "ADC1");
-
 	for (;;) {
 		/*
 		t = previous() - 1;	// 0 is idle
@@ -181,8 +195,9 @@ lcd(void *arg)
 
 		mvputs(1, 5, itohex(now()));
 		 */
-		mvputs(0, 5, itohex(a->adc[0]));
-		mvputs(1, 5, itohex(a->adc[1]));
+
+		mvputs(0, 0, itoa(a->adc[0]));
+		mvputs(1, 0, itoa(a->adc[1]));
 
 		lcdargs.r = lcdargs.d + MSEC(100);
 		lcdargs.d += MSEC(50);

@@ -39,15 +39,19 @@ adc(void *arg)
 	struct adcarg *a = (struct adcarg *)arg;
 	uint32_t r = release();
 	uint32_t d = deadline();
+	uint16_t v;
 	uint8_t i;
 
 	ADCSRA |= (_BV(ADEN) | ADC_FLAGS);
-	/* ADMUX |= _BV(REFS0); */
+//	ADMUX |= _BV(REFS0);
 
 	for (;;) {
+		wait(0);
 		for (i = 0; i < ADCCHANNELS; i++)
 			a->value[i] = rdadc(i);
-		r = d += MSEC(1);
+		signal(0);
+		r = d;
+		d += MSEC(10) * ADCCHANNELS;
 		update(r, d);
 	}
 }

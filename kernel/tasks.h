@@ -19,7 +19,7 @@
 #define __TASKS_H
 
 #define ADCCHANNELS 6
-#define ADCPRESCALE 32
+#define ADCPRESCALE 8
 
 #if (ADCPRESCALE == 1)
 #define ADC_FLAGS 0
@@ -52,6 +52,8 @@ struct pwmarg {
 
 struct adcarg {
 	uint16_t *value;
+	uint16_t *max;
+	uint16_t *min;
 };
 
 struct lcdarg {
@@ -60,12 +62,17 @@ struct lcdarg {
 	uint16_t *adc;
 };
 
+struct ppmarg {
+	uint16_t *value;
+};
+
 void	init_uart(void);
 
 void	heartbeat(void *);
 void	rgb(void *);
-void	cpwm(void *);
+void	pwm(void *);
 void	lcd(void *);
 void	adc(void *);
+void	ppm(void *);
 
 #endif
