@@ -38,14 +38,14 @@ rgb(void *arg)
 
 		hsv(a->r, a->g, a->b, i, 255, v);
 
-		r = d + MSEC(28);
-		d = r + MSEC(2);
+		r = d;
+		d += MSEC(28);
 		update(r, d);
 	}
 }
 
 void
-cpwm(void *arg)
+pwm(void *arg)
 {
 #define	SCALE 4
 	struct pwmarg *a = (struct pwmarg *)arg;
@@ -58,13 +58,13 @@ cpwm(void *arg)
 	for (;;) {
 		if (*a->value > 0) {
 			PORTB |= _BV(a->pin);
-			r = d += USEC(*a->value << SCALE);
+			d = r += USEC(*a->value << SCALE);
 			update(r, d);
 		}
 
 		if (*a->value < 255) {
 			PORTB &= ~_BV(a->pin);
-			r = d += USEC((255 - *a->value) << SCALE);
+			d = r += USEC((255 - *a->value) << SCALE);
 			update(r, d);
 		}
 	}

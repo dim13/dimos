@@ -1,7 +1,8 @@
 # $Id$
 
 PROG		= kernel
-SRCS		= kernel.c main.c uart.c heartbeat.c rgb.c hsv.c lcd3.c adc.c
+SRCS		= kernel.c main.c uart.c heartbeat.c rgb.c hsv.c lcd3.c \
+		adc.c ppm.c
 HEADERS		= kernel.h stack.h
 MCU_TARGET	= atmega8
 F_CPU		= 16000000

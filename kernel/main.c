@@ -31,6 +31,7 @@ struct pwmarg pwmargs[] = {
 };
 struct adcarg adcarg = { adcval };
 struct lcdarg lcdarg = { 0, 0, adcval };
+struct ppmarg ppmarg = { adcval };
 
 int
 main()
@@ -39,13 +40,18 @@ main()
 
 	init_uart();
 
+	semaphore(0, 1);
+
 	task(heartbeat, STACK, SEC(0), MSEC(10), 0);
+	/*
 	task(rgb, STACK, SEC(0), MSEC(10), &rgbargs);
-	task(cpwm, STACK, SEC(0), MSEC(10), &pwmargs[0]);
-	task(cpwm, STACK, SEC(0), MSEC(10), &pwmargs[1]);
-	task(cpwm, STACK, SEC(0), MSEC(10), &pwmargs[2]);
+	task(pwm, STACK, SEC(0), MSEC(10), &pwmargs[0]);
+	task(pwm, STACK, SEC(0), MSEC(10), &pwmargs[1]);
+	task(pwm, STACK, SEC(0), MSEC(10), &pwmargs[2]);
+	 */
 	task(lcd, STACK, MSEC(40), SEC(1), &lcdarg);
 	task(adc, STACK, MSEC(0), MSEC(20), &adcarg);
+	task(ppm, STACK, MSEC(0), MSEC(20), &ppmarg);
 
 	for (;;);
 
