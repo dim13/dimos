@@ -17,6 +17,7 @@
 
 #include <inttypes.h>
 #include <avr/io.h>
+#include <util/delay.h>
 #include "kernel.h"
 #include "tasks.h"
 
@@ -55,14 +56,10 @@
 #define	CLOCK			PD6
 #define	E			PD7
 
-struct lcdargs {
-	uint32_t d;
-	uint32_t r;
-} lcdargs;
-
-#define snooze(t)		do { lcdargs.r += USEC(t); update(lcdargs.r, lcdargs.d); } while (0)
-#define write_cmd(x, delay)	do { write_byte((x), 0); snooze(delay); } while (0)
-#define write_data(x)		do { write_byte((x), 1); snooze(43); } while (0)
+#define write_cmd(x, delay)	do { write_byte((x), 0); snooze(USEC(delay)); } while (0)
+#define write_data(x)		do { write_byte((x), 1); snooze(USEC(43)); } while (0)
+//#define write_cmd(x, delay)	do { write_byte((x), 0); _delay_us(delay); } while (0)
+//#define write_data(x)		do { write_byte((x), 1); _delay_us(43); } while (0)
 #define move(line, row)		do { write_cmd(SET_DDRAM_ADDRESS | ((line) << 6) | (row), 39); } while (0)
 #define clear()			do { write_cmd(CLEAR_DISPLAY, 1530); } while (0)
 #define home()			do { write_cmd(RETURN_HOME, 1530); } while (0)
@@ -163,14 +160,11 @@ void
 lcd(void *arg)
 {
 	struct lcdarg *a = (struct lcdarg *)arg;
-	uint8_t i, t;
 
 	PORTDIR |= (_BV(DATA) | _BV(CLOCK) | _BV(E));
 
 	/* task init: wait >40ms */
-
-	lcdargs.d = deadline();
-	lcdargs.r = release();
+	snooze(MSEC(40));
 
 	/* 8 bit, 2 line, 5x8 font */
 	write_cmd(FUNCTION_SET | DATA_LENGTH_8BIT | TWO_LINES, 39);
@@ -188,19 +182,8 @@ lcd(void *arg)
 	home();
 
 	for (;;) {
-		/*
-		t = previous() - 1;	// 0 is idle
-		for (i = 0; i < TASKS; i++)
-			mvputch(0, 5 + i, t == i ? '1' + t : '-');
-
-		mvputs(1, 5, itohex(now()));
-		 */
-
 		mvputs(0, 0, itoa(a->adc[0]));
 		mvputs(1, 0, itoa(a->adc[1]));
-
-		lcdargs.r = lcdargs.d + MSEC(100);
-		lcdargs.d += MSEC(50);
-		update(lcdargs.r, lcdargs.d);
+		period(MSEC(50));
 	}
 }

@@ -42,16 +42,17 @@ main()
 
 	semaphore(0, 1);
 
-	task(heartbeat, STACK, SEC(0), MSEC(10), 0);
 	/*
-	task(rgb, STACK, SEC(0), MSEC(10), &rgbargs);
-	task(pwm, STACK, SEC(0), MSEC(10), &pwmargs[0]);
-	task(pwm, STACK, SEC(0), MSEC(10), &pwmargs[1]);
-	task(pwm, STACK, SEC(0), MSEC(10), &pwmargs[2]);
+	task(rgb, STACK, MSEC(10), &rgbargs);
+	task(pwm, STACK, MSEC(10), &pwmargs[0]);
+	task(pwm, STACK, MSEC(10), &pwmargs[1]);
+	task(pwm, STACK, MSEC(10), &pwmargs[2]);
 	 */
-	task(lcd, STACK, MSEC(40), SEC(1), &lcdarg);
-	task(adc, STACK, MSEC(0), MSEC(20), &adcarg);
-	task(ppm, STACK, MSEC(0), MSEC(20), &ppmarg);
+
+	task(heartbeat, STACK, MSEC(0), MSEC(750), 0);
+	task(adc, STACK, MSEC(1), MSEC(60), &adcarg);
+	task(ppm, STACK, MSEC(3), MSEC(20), &ppmarg);
+	task(lcd, STACK, MSEC(7), MSEC(100), &lcdarg);
 
 	for (;;);
 

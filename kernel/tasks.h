@@ -19,7 +19,7 @@
 #define __TASKS_H
 
 #define ADCCHANNELS 6
-#define ADCPRESCALE 8
+#define ADCPRESCALE 128
 
 #if (ADCPRESCALE == 1)
 #define ADC_FLAGS 0

@@ -69,12 +69,13 @@ void wait(uint8_t semnbr);
 void signal(uint8_t semnbr);
 
 void update(uint32_t release, uint32_t deadline);
+void snooze(uint32_t delay);
+void period(uint32_t t);
 void suspend(void);
 
 uint32_t now(void);
 uint32_t release(void);
 uint32_t deadline(void);
 uint8_t running(void);
-uint8_t previous(void);
 
 #endif
