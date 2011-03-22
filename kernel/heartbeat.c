@@ -26,28 +26,21 @@ void
 heartbeat(void *arg)
 {
 	/* 80bpm: 100ms on, 50ms off, 100ms on, 500ms off */
-	uint32_t d = deadline();
-	uint32_t r = release();
 
 	DDRB |= _BV(PIN);
 	PORTB &= ~_BV(PIN);
 
 	for (;;) {
 		PORTB ^= _BV(PIN);
-		r += MSEC(100);
-		update(r, d);
+		snooze(MSEC(100));
 
 		PORTB ^= _BV(PIN);
-		r += MSEC(50);
-		update(r, d);
+		snooze(MSEC(50));
 
 		PORTB ^= _BV(PIN);
-		r += MSEC(100);
-		update(r, d);
+		snooze(MSEC(100));
 
 		PORTB ^= _BV(PIN);
-		r += MSEC(500);
-		d = r + MSEC(750);
-		update(r, d);
+		period(MSEC(750));
 	}
 }
