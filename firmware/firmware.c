@@ -27,18 +27,16 @@ union {
 } data;
 
 void
-reboot()
+reboot(void)
 {
 	boot_rww_enable();
+
 	((void(*)(void))0)();	/* jump to app */
 }
 
 void
 putch(char c)
 {
-	if (c == '\n')
-		putch('\r');	/* be unix polite */
-
 	loop_until_bit_is_set(UCSRA, UDRE);
 
 	UDR = c;
@@ -57,11 +55,17 @@ getch(void)
 	return UDR;
 }
 
+enum { INIT, PAGE, DATA, CKSUM };
+
 int
 main(void)
 {
-	uint8_t i;
-	uint16_t off;
+
+	uint16_t off = 0;
+	uint8_t ch = 0;
+	uint8_t n = 0;
+	uint8_t sum = 0;
+	uint8_t state = INIT;
 
 	UCSRB = _BV(RXEN) | _BV(TXEN);
 	UBRRH = UBRRH_VALUE;
@@ -69,33 +73,46 @@ main(void)
 	UCSRA &= ~_BV(U2X);
 
 	putch('+');		/* say hallo */
-
-	if (getch() != 'P')	/* wait a while for program request */
-		reboot();
-	putch('p');		/* confirm */
-
 	for (;;) {
-		switch (getch()) {
-		case 'D':	/* data request */
-			off = (uint16_t)getch() * SPM_PAGESIZE;
-			for (i = 0; i < SPM_PAGESIZE; i += 2) {
-				data.byte[0] = getch();
-				data.byte[1] = getch();
-				boot_page_fill(off + i, data.word);
+		ch = getch();
+		switch (state) {
+		case INIT:
+			switch (ch) {
+			case 'D':
+				state = PAGE;
+				break;
+			case 'P':	/* legacy: confim programming state */
+				putch('p');
+				break;
+			case 'R':
+				reboot();
+				break;
 			}
-
-			boot_page_erase(off);
-			boot_spm_busy_wait();
-
-			boot_page_write(off);
-			boot_spm_busy_wait();
-
-			putch('d');	/* confirm */
 			break;
-		case 'R':	/* reboot request */
-			reboot();
+		case PAGE:
+			n = 0;
+			sum = ch;
+			off = (uint16_t)ch * SPM_PAGESIZE;
+			state = DATA;
 			break;
-		default:
+		case DATA:
+			sum += ch;
+			data.byte[n % 2] = ch;
+			if (n % 2)
+				boot_page_fill(off + n - 1, data.word);
+			if (n++ == SPM_PAGESIZE)
+				state = CKSUM;
+			break;
+		case CKSUM:
+			if (sum == ch) {
+				boot_page_erase(off);
+				boot_spm_busy_wait();
+				boot_page_write(off);
+				boot_spm_busy_wait();
+				putch('d');	/* confirm */
+			} else
+				putch('D');
+			state = INIT;
 			break;
 		}
 	}
