@@ -26,6 +26,7 @@ int
 transfer(int fd, struct page *p, int pages, int pagesize)
 {
 	int	n, off;
+	unsigned char sum;
 
 	fprintf(stderr, "trying to reboot device\n");
 	usleep(500);
@@ -45,9 +46,14 @@ transfer(int fd, struct page *p, int pages, int pagesize)
 		if (p[n].dirty) {
 			put('D', fd);
 			put(n, fd);
-			for (off = 0; off < pagesize; off++)
+			sum = n;
+			for (off = 0; off < pagesize; off++) {
 				put(p[n].data[off], fd);
-			assert (get(fd) == 'd');
+				sum += p[n].data[off];
+			}
+			put(sum, fd);
+			if (get(fd) != 'd')
+				n--;	/* resend */
 		}
 	}
 	fprintf(stderr, "\nrebooting\n");
