@@ -70,7 +70,7 @@ main(void)
 	UCSRB = _BV(RXEN) | _BV(TXEN);
 	UBRRH = UBRRH_VALUE;
 	UBRRL = UBRRL_VALUE;
-	UCSRA |= _BV(U2X);
+	UCSRA &= ~_BV(U2X);
 
 	putch('+');		/* say hallo */
 	for (;;) {
@@ -78,14 +78,13 @@ main(void)
 		switch (state) {
 		case INIT:
 			switch (ch) {
-			case 'D':
+			case '@':
 				state = PAGE;
 				break;
-			case 'P':	/* legacy: confim programming state */
-				putch('p');
-				break;
-			case 'R':
+			case '-':
 				reboot();
+				break;
+			default:
 				break;
 			}
 			break;
@@ -100,7 +99,7 @@ main(void)
 			data.byte[n % 2] = ch;
 			if (n % 2)
 				boot_page_fill(off + n - 1, data.word);
-			if (n++ == SPM_PAGESIZE)
+			if (++n == SPM_PAGESIZE)
 				state = CKSUM;
 			break;
 		case CKSUM:
@@ -109,9 +108,9 @@ main(void)
 				boot_spm_busy_wait();
 				boot_page_write(off);
 				boot_spm_busy_wait();
-				putch('d');	/* confirm */
+				putch('.');	/* confirm */
 			} else
-				putch('D');
+				putch('!');	/* flag error */
 			state = INIT;
 			break;
 		}
