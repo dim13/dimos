@@ -39,10 +39,10 @@ main()
 	semaphore(0, 1);
 
 	task(heartbeat, STACK, MSEC(0), MSEC(750), 0);
-	task(rgb, STACK, MSEC(1), MSEC(10), &rgbargs);
-	task(pwm, STACK, MSEC(3), MSEC(10), &pwmargs[0]);
-	task(pwm, STACK, MSEC(7), MSEC(10), &pwmargs[1]);
-	task(pwm, STACK, MSEC(11), MSEC(10), &pwmargs[2]);
+	task(rgb, STACK, MSEC(0), MSEC(10), &rgbargs);
+	task(pwm, STACK, MSEC(0), MSEC(10), &pwmargs[0]);
+	task(pwm, STACK, MSEC(0), MSEC(10), &pwmargs[1]);
+	task(pwm, STACK, MSEC(0), MSEC(10), &pwmargs[2]);
 
 	for (;;);
 
