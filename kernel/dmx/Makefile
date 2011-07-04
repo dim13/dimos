@@ -8,8 +8,8 @@ TASKS=		8
 SEMAPHORES=	8
 BAUD=		9600
 
-PROG=	remix16
-SRCS=	remix16.c uart.c heartbeat.c rgb.c hsv.c lcd3.c \
+PROG=	dmx
+SRCS=	dmx.c uart.c heartbeat.c rgb.c hsv.c lcd3.c \
 	adc.c ppm.c
 NOMAN=
 
