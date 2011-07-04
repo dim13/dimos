@@ -25,13 +25,15 @@
 int
 transfer(int fd, struct page *p, int pages, int pagesize)
 {
-	int	n, off;
+	int	n, off, e = 0;
 	unsigned char sum;
 
+#if 0
 	fprintf(stderr, "trying to reboot device\n");
 	usleep(500);
 	put('R', fd);	/* try to reboot */
 	usleep(500);
+#endif
 
 	fprintf(stderr, "waiting for bootloader ");
 	do {
@@ -42,7 +44,8 @@ transfer(int fd, struct page *p, int pages, int pagesize)
 	fprintf(stderr, "\nwriting: ");
 
 	for (n = 0; n < pages; n++) {
-		fprintf(stderr, "%c", ".o"[p[n].dirty]);
+		fprintf(stderr, "%c", e ? 'E' : ".o"[p[n].dirty]);
+
 		if (p[n].dirty) {
 			put('D', fd);
 			put(n, fd);
@@ -52,8 +55,11 @@ transfer(int fd, struct page *p, int pages, int pagesize)
 				sum += p[n].data[off];
 			}
 			put(sum, fd);
-			if (get(fd) != 'd')
+			if (get(fd) != 'd') {
 				n--;	/* resend */
+				e = 1;
+			} else
+				e = 0;
 		}
 	}
 	fprintf(stderr, "\nrebooting\n");
@@ -89,8 +95,10 @@ main(int argc, char **argv)
 	assert(p[120].dirty == 0);	/* protect firmware */
 
 	fd = open_tty(dev);
-	if (fd == -1)
+	if (fd == -1) {
 		perror(dev);
+		return -1;
+	}
 	transfer(fd, p, PAGENUM, PAGESIZE);
 	close(fd);
 
