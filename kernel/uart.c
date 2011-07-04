@@ -35,6 +35,36 @@ uart_putchar(char c)
 	UDR = c;
 }
 
+char
+uart_getchar(void)
+{
+	char c;
+
+	loop_until_bit_is_set(UCSRA, RXC);
+
+	if (UCSRA & _BV(FE))
+		return -2;		/* EOF */
+	if (UCSRA & _BV(DOR))
+		return -1;		/* ERR */
+	c = UDR;
+
+	switch (c) {
+	case '\r':
+		c = '\n';
+		break;
+	case '\n':
+		uart_putchar(c);
+		break;
+	case '\t':
+		c = ' ';
+		break;
+	default:
+		break;
+	}
+
+	return c;
+}
+
 ISR(SIG_UART_RECV)
 {
 	uint8_t	c = UDR;
@@ -76,5 +106,9 @@ init_uart(void)
 	UCSRB = _BV(RXCIE) | _BV(RXEN) | _BV(TXEN);
 	UBRRH = UBRRH_VALUE;
 	UBRRL = UBRRL_VALUE;
+#if USE_2X
+	UCSRA |= _BV(U2X);
+#else
 	UCSRA &= ~_BV(U2X);
+#endif
 }
