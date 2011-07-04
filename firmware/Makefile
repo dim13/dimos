@@ -27,7 +27,7 @@ all: ${PROG}.elf ${PROG}.lst ${PROG}.hex ${PROG}.ehex size
 ${SRCS}: ${HEADERS} Makefile
 
 ${PROG}.elf: ${OBJS}
-	${CC} ${CFLAGS} ${LDFLAGS} -o ${.TARGET} ${.ALLSRC}
+	${CC} ${LDFLAGS} -o ${.TARGET} ${.ALLSRC}
 
 size: ${PROG}.elf
 	${SIZE} -C --mcu=${MCU_TARGET} ${.ALLSRC}
