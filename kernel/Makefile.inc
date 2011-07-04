@@ -2,6 +2,8 @@
 
 .PATH:	${.CURDIR}/..
 
+SRCS+=		kernel.c
+
 CC=		avr-gcc
 OBJCOPY=	avr-objcopy
 OBJDUMP=	avr-objdump
