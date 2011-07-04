@@ -20,47 +20,19 @@
 #include <avr/boot.h>
 
 #define TIMEOUT (F_CPU >> 3)	/* ca. 2 sec */
+#define PUTCH(c) do { loop_until_bit_is_set(UCSRA, UDRE); UDR = (c); } while (0)
 
 union {
 	uint16_t word;
 	uint8_t	byte[2];
 } data;
 
-void
-reboot(void)
-{
-	boot_rww_enable();
-
-	((void(*)(void))0)();	/* jump to app */
-}
-
-void
-putch(char c)
-{
-	loop_until_bit_is_set(UCSRA, UDRE);
-
-	UDR = c;
-}
-
-uint8_t
-getch(void)
-{
-	uint32_t counter = 0;
-
-	do {
-		if (++counter > TIMEOUT)
-			reboot();
-	} while (bit_is_clear(UCSRA, RXC));
-
-	return UDR;
-}
-
 enum { INIT, PAGE, DATA, CKSUM };
 
 int
 main(void)
 {
-
+	uint32_t c = 0;
 	uint16_t off = 0;
 	uint8_t ch = 0;
 	uint8_t n = 0;
@@ -72,9 +44,13 @@ main(void)
 	UBRRL = UBRRL_VALUE;
 	UCSRA &= ~_BV(U2X);
 
-	putch('+');		/* say hallo */
+	PUTCH('+');		/* say hallo */
 	for (;;) {
-		ch = getch();
+		for (c = 0; bit_is_clear(UCSRA, RXC); c++);
+			if (c > TIMEOUT)
+				goto reboot;
+		ch = UDR;	/* GETCH */
+
 		switch (state) {
 		case INIT:
 			switch (ch) {
@@ -82,8 +58,7 @@ main(void)
 				state = PAGE;
 				break;
 			case '-':
-				reboot();
-				break;
+				goto reboot;
 			default:
 				break;
 			}
@@ -108,13 +83,19 @@ main(void)
 				boot_spm_busy_wait();
 				boot_page_write(off);
 				boot_spm_busy_wait();
-				putch('.');	/* confirm */
+				PUTCH('.');	/* confirm */
 			} else
-				putch('!');	/* flag error */
+				PUTCH('!');	/* flag error */
 			state = INIT;
 			break;
 		}
 	}
+
+reboot:
+	boot_rww_enable();
+
+	((void(*)(void))0)();	/* jump to app */
+	/* NOTREACHED */
 
 	return 0;
 }
