@@ -28,6 +28,9 @@
 void
 put(unsigned char c, int fd)
 {
+#if DEBUG
+	fprintf(stderr, "-> 0x%.2x\n", c);
+#endif
 	while (write(fd, &c, 1) == -1)
 		;
 }
@@ -39,7 +42,9 @@ get(int fd)
 
 	while (read(fd, &c, 1) == -1)
 		;
-
+#if DEBUG
+	fprintf(stderr, "<- 0x%.2x\n", c);
+#endif
 	return c;
 }
 

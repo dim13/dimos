@@ -25,29 +25,20 @@
 int
 transfer(int fd, struct page *p, int pages, int pagesize)
 {
-	int	n, off, e = 0;
+	int	n, off;
 	unsigned char sum;
 
-#if 0
-	fprintf(stderr, "trying to reboot device\n");
-	usleep(500);
-	put('R', fd);	/* try to reboot */
-	usleep(500);
-#endif
-
-	fprintf(stderr, "waiting for bootloader ");
-	do {
-		put('P', fd);
-		twiddle();
-	} while (get(fd) != 'p');
+	fprintf(stderr, "waiting for bootloader ...");
+	while (get(fd) != '+')
+		;
 
 	fprintf(stderr, "\nwriting: ");
 
 	for (n = 0; n < pages; n++) {
-		fprintf(stderr, "%c", e ? 'E' : ".o"[p[n].dirty]);
+		fprintf(stderr, "%c", ".o"[p[n].dirty]);
 
 		if (p[n].dirty) {
-			put('D', fd);
+			put('@', fd);
 			put(n, fd);
 			sum = n;
 			for (off = 0; off < pagesize; off++) {
@@ -55,15 +46,23 @@ transfer(int fd, struct page *p, int pages, int pagesize)
 				sum += p[n].data[off];
 			}
 			put(sum, fd);
-			if (get(fd) != 'd') {
-				n--;	/* resend */
-				e = 1;
-			} else
-				e = 0;
+			switch (get(fd)) {
+			case '.':
+				break;	/* success, next page */
+			case '!':
+				n--;	/* error stay on the same page */
+				fprintf(stderr, "E");
+				break;
+			default:
+				goto fubar;
+			}
 		}
 	}
+
+fubar:
+
 	fprintf(stderr, "\nrebooting\n");
-	put('R', fd);
+	put('-', fd);
 
 	return 0;
 }
