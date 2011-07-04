@@ -70,7 +70,7 @@ main(void)
 	UCSRB = _BV(RXEN) | _BV(TXEN);
 	UBRRH = UBRRH_VALUE;
 	UBRRL = UBRRL_VALUE;
-	UCSRA &= ~_BV(U2X);
+	UCSRA |= _BV(U2X);
 
 	putch('+');		/* say hallo */
 	for (;;) {
