@@ -9,8 +9,7 @@ SEMAPHORES=	8
 BAUD=		9600
 
 PROG=	dmx
-SRCS=	dmx.c uart.c heartbeat.c rgb.c hsv.c lcd3.c \
-	adc.c ppm.c
+SRCS=	dmx.c uart.c heartbeat.c rgb.c hsv.c
 NOMAN=
 
 .include <bsd.prog.mk>
