@@ -20,15 +20,8 @@
 #include "kernel.h"
 #include "tasks.h"
 
-uint8_t	red, green, blue;
 uint16_t adcval[ADCCHANNELS];
 
-struct rgbarg rgbargs = { &red, &green, &blue };
-struct pwmarg pwmargs[] = {
-	{ &red, PB2 },
-	{ &green, PB3 },
-	{ &blue, PB4 }
-};
 struct adcarg adcarg = { adcval };
 struct lcdarg lcdarg = { 0, 0, adcval };
 struct ppmarg ppmarg = { adcval };
@@ -41,13 +34,6 @@ main()
 	init_uart();
 
 	semaphore(0, 1);
-
-	/*
-	task(rgb, STACK, MSEC(10), &rgbargs);
-	task(pwm, STACK, MSEC(10), &pwmargs[0]);
-	task(pwm, STACK, MSEC(10), &pwmargs[1]);
-	task(pwm, STACK, MSEC(10), &pwmargs[2]);
-	 */
 
 	task(heartbeat, STACK, MSEC(0), MSEC(750), 0);
 	task(adc, STACK, MSEC(1), MSEC(60), &adcarg);
