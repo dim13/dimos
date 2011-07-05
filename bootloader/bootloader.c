@@ -39,8 +39,10 @@ transfer(int fd, struct page *p, int pages, int pagesize)
 	for (n = 0; n < pages; n++) {
 		if (n < GUARDPAGE)
 			fprintf(stderr, "%c", ".o"[p[n].dirty]);
-		else
+		else {
 			fprintf(stderr, "x");
+			continue;
+		}
 
 		if (p[n].dirty) {
 			put('@', fd);
