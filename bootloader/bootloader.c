@@ -22,6 +22,8 @@
 #include <string.h>
 #include "bootloader.h"
 
+#define GUARDPAGE	120
+
 int
 transfer(int fd, struct page *p, int pages, int pagesize)
 {
@@ -35,7 +37,10 @@ transfer(int fd, struct page *p, int pages, int pagesize)
 	fprintf(stderr, "\nwriting: ");
 
 	for (n = 0; n < pages; n++) {
-		fprintf(stderr, "%c", ".o"[p[n].dirty]);
+		if (n < GUARDPAGE)
+			fprintf(stderr, "%c", ".o"[p[n].dirty]);
+		else
+			fprintf(stderr, "x");
 
 		if (p[n].dirty) {
 			put('@', fd);
@@ -91,7 +96,7 @@ main(int argc, char **argv)
 
 	p = rdhex(argv[0], PAGENUM, PAGESIZE);
 	assert(p);
-	assert(p[120].dirty == 0);	/* protect firmware */
+	assert(p[GUARDPAGE].dirty == 0);	/* protect firmware */
 
 	fd = open_tty(dev);
 	if (fd == -1) {
