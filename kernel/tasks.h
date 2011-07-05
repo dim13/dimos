@@ -67,6 +67,8 @@ struct ppmarg {
 };
 
 void	init_uart(void);
+char	uart_getchar(void);
+void	uart_putchar(char);
 
 void	heartbeat(void *);
 void	rgb(void *);
@@ -74,5 +76,6 @@ void	pwm(void *);
 void	lcd(void *);
 void	adc(void *);
 void	ppm(void *);
+void	cmd(void *);
 
 #endif

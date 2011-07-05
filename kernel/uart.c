@@ -40,7 +40,12 @@ uart_getchar(void)
 {
 	char c;
 
+#if BLOCKING
 	loop_until_bit_is_set(UCSRA, RXC);
+#else
+	if (bit_is_clear(UCSRA, RXC))
+		return 0;
+#endif
 
 	if (UCSRA & _BV(FE))
 		return -2;		/* EOF */
@@ -48,12 +53,11 @@ uart_getchar(void)
 		return -1;		/* ERR */
 	c = UDR;
 
+	uart_putchar(c);		/* ECHO */
+
 	switch (c) {
 	case '\r':
 		c = '\n';
-		break;
-	case '\n':
-		uart_putchar(c);
 		break;
 	case '\t':
 		c = ' ';
@@ -65,6 +69,7 @@ uart_getchar(void)
 	return c;
 }
 
+#if USE_RXCIE
 ISR(SIG_UART_RECV)
 {
 	uint8_t	c = UDR;
@@ -99,16 +104,16 @@ ISR(SIG_UART_DATA)
 
 	UDR = r ? '0' + r : '.';
 }
+#endif
 
 void
 init_uart(void)
 {
-	UCSRB = _BV(RXCIE) | _BV(RXEN) | _BV(TXEN);
+	UCSRB = _BV(RXEN) | _BV(TXEN);
+#if USE_RXCIE
+	UCSRB |= _BV(RXCIE);
+#endif
 	UBRRH = UBRRH_VALUE;
 	UBRRL = UBRRL_VALUE;
-#if USE_2X
-	UCSRA |= _BV(U2X);
-#else
 	UCSRA &= ~_BV(U2X);
-#endif
 }
