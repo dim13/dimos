@@ -21,6 +21,7 @@
 #endif
 
 #include <inttypes.h>
+#include <stdio.h>
 #include <avr/io.h>
 #include <avr/wdt.h>
 #include <avr/interrupt.h>
@@ -28,14 +29,18 @@
 #include "kernel.h"
 #include "tasks.h"
 
-void
+int
 uart_putchar(char c)
 {
+	if (c == '\n')
+		uart_putchar('\r');
 	loop_until_bit_is_set(UCSRA, UDRE);
 	UDR = c;
+
+	return 0;
 }
 
-char
+int
 uart_getchar(void)
 {
 	char c;
