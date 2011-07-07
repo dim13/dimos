@@ -19,7 +19,7 @@
 #include <util/setbaud.h>	/* depends on BAUD & F_CPU env vars */
 #include <avr/boot.h>
 
-#define TIMEOUT (F_CPU >> 3)	/* ca. 2 sec */
+#define TIMEOUT (F_CPU / PRESCALE)	/* 1 sec */
 #define PUTCH(c) do { loop_until_bit_is_set(UCSRA, UDRE); UDR = (c); } while (0)
 
 union {
@@ -46,7 +46,7 @@ main(void)
 
 	PUTCH('+');		/* say hallo */
 	for (;;) {
-		for (c = 0; bit_is_clear(UCSRA, RXC); c++);
+		for (c = 0; bit_is_clear(UCSRA, RXC); c++)
 			if (c > TIMEOUT)
 				goto reboot;
 		ch = UDR;	/* GETCH */
