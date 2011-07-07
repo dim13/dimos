@@ -40,6 +40,8 @@ cmd(void *arg)
 	int val;
 	char buf[10], *s;
 
+	init_uart();
+
 	s = buf;
 
 	for (;;) {

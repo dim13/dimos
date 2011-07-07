@@ -34,8 +34,6 @@ main()
 {
 	init(STACK);
 
-	init_uart();
-
 	semaphore(0, 1);
 
 	task(heartbeat, STACK, USEC(0), MSEC(750), 0);
