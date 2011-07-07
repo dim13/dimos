@@ -45,16 +45,16 @@ uart_getchar(void)
 {
 	char c;
 
-#if BLOCKING
+#if 0	/* BLOCKING */
 	loop_until_bit_is_set(UCSRA, RXC);
 #else
 	if (bit_is_clear(UCSRA, RXC))
 		return 0;
 #endif
 
-	if (UCSRA & _BV(FE))
+	if (bit_is_set(UCSRA, FE))
 		return -2;		/* EOF */
-	if (UCSRA & _BV(DOR))
+	if (bit_is_set(UCSRA, DOR))
 		return -1;		/* ERR */
 	c = UDR;
 

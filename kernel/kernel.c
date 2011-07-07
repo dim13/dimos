@@ -67,7 +67,7 @@ ISR(SCHEDULE, ISR_NAKED)
 
 	TIMSK &= ~_BV(OCIE1A);		/* turn off output compare 1A */
 
-	if (TIFR & _BV(TOV1)) {
+	if (bit_is_set(TIFR, TOV1)) {
 		TIFR |= _BV(TOV1);	/* reset flag */
 		++kernel.cycles;
 	}
