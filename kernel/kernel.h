@@ -57,7 +57,7 @@
 #warning "invalid PRESCALE value"
 #endif
 
-#define SEC(T)	((uint32_t)((T) * (F_CPU / PRESCALE)))
+#define SEC(T)	((uint32_t)(T) * (F_CPU / PRESCALE))
 #define MSEC(T)	((uint32_t)(T) * ((F_CPU / 1000) / PRESCALE))
 #define USEC(T)	((uint32_t)(T) * ((F_CPU / 1000000) / PRESCALE))
 
