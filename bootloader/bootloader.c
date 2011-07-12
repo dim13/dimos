@@ -27,7 +27,7 @@
 int
 transfer(int fd, struct page *p, int pages, int pagesize)
 {
-	int	n, off;
+	int	n, off, maxerr = 3;
 	unsigned char sum;
 
 	fprintf(stderr, "waiting for bootloader ...");
@@ -61,7 +61,10 @@ transfer(int fd, struct page *p, int pages, int pagesize)
 				fprintf(stderr, "E");
 				break;
 			default:
-				goto fubar;
+				if (!maxerr--)
+					goto fubar;
+				fprintf(stderr, "\ngarbage on the line, retry\n");
+				return transfer(fd, p, pages, pagesize);
 			}
 		}
 	}
