@@ -172,9 +172,11 @@ rgb(void *arg)
 			v = 161 - i;
 		else
 			v = i;
+		//wait(0);
 		*a->r = pgm_read_byte(&bb[v].r);
 		*a->g = pgm_read_byte(&bb[v].g);
 		*a->b = pgm_read_byte(&bb[v].b);
+		//signal(0);
 
 		sleep(SOFT, MSEC(370));
 #endif
@@ -195,7 +197,9 @@ pwm(void *arg)
 	update(n, n + USEC(maxval));
 
 	for (;;) {
+		//wait(0);
 		on = pgm_read_word(&factor[*a->value]);
+		//signal(0);
 		off = maxval - on;
 
 		if (*a->value > 0) {

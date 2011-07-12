@@ -125,7 +125,7 @@ ISR(SCHEDULE, ISR_NAKED)
 }
 
 void
-init(int idlestack)
+init(int stack)
 {
 	/* Set up timer 1 */
 	TCNT1 = 0;			/* reset counter 1 */
@@ -133,7 +133,7 @@ init(int idlestack)
 	TCCR1B = TIMER_FLAGS;
 	TIMSK = _BV(OCIE1A);
 
-	kernel.freemem = (void *)(RAMEND - idlestack);
+	kernel.freemem = (void *)(RAMEND - stack);
 	kernel.last = kernel.task;
 	kernel.running = kernel.task;
 	kernel.cycles = 0;
@@ -291,4 +291,10 @@ suspend(void)
 	kernel.running->state = TERMINATED;
 
 	SCHEDULE();
+}
+
+uint8_t
+running(void)
+{
+	return kernel.running - kernel.task;
 }

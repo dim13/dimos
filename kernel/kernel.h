@@ -76,5 +76,6 @@ void sleep(uint8_t, uint32_t);
 uint32_t now(void);
 uint32_t release(void);
 uint32_t deadline(void);
+uint8_t running(void);
 
 #endif
