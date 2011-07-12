@@ -17,45 +17,24 @@
 
 #include <inttypes.h>
 #include <avr/io.h>
+#include <stdio.h>
 #include "kernel.h"
 #include "tasks.h"
 
-/* globals */
-uint8_t	red, green, blue;
-struct rgbarg rgbargs = { &red, &green, &blue };
-struct pwmarg pwmargs[] = {
-	{ &red, PB2 },
-	{ &green, PB3 },
-	{ &blue, PB4 }
-};
-struct lcdarg lcdarg;
-struct clockarg clockarg;
-struct ctrlarg ctrlarg = { &lcdarg, &clockarg };
-
-int
-main()
+void
+ctrl(void *arg)
 {
-	init(36);
+	struct ctrlarg *a = arg;
 
-#if 0
-	semaphore(0, 1);
-#endif
-	task(heartbeat, STACK, 0);
+	update(0, MSEC(500));
 
-	task(rgb, STACK + 8, &rgbargs);
-	task(pwm, STACK, &pwmargs[0]);
-	task(pwm, STACK, &pwmargs[1]);
-	task(pwm, STACK, &pwmargs[2]);
-#if 0
-	task(cmd, STACK, &rgbargs);
-#endif
-#if 1
-	task(lcd, STACK, &lcdarg);
-	task(clock, STACK, &clockarg);
-	task(ctrl, STACK, &ctrlarg);
-#endif
-
-	for (;;);	/* idle task */
-
-	return 0;
+	for (;;) {
+		sprintf(a->lcd->first, "the time is now:");
+		sprintf(a->lcd->second, "%4d:%.2d:%.2d:%.2d",
+			a->clock->d,
+			a->clock->h,
+			a->clock->m,
+			a->clock->s);
+		sleep(SOFT, MSEC(500));
+	}
 }

@@ -152,8 +152,10 @@ rgb(void *arg)
 	uint16_t i = 0;
 	uint8_t v;
 
+	update(0, MSEC(370));
+
 	for (;;) {
-#if 0
+#if 1
 		i = (i + 1) % 360;
 		#if 0
 		v = i % 120;
@@ -163,8 +165,8 @@ rgb(void *arg)
 		#endif
 
 		hsv(a->r, a->g, a->b, i, 255, v);
-		period(MSEC(83));
-#endif
+		sleep(SOFT, MSEC(83));
+#else
 		i = (i + 1) % 162;
 		if (i > 80)
 			v = 161 - i;
@@ -173,7 +175,9 @@ rgb(void *arg)
 		*a->r = pgm_read_byte(&bb[v].r);
 		*a->g = pgm_read_byte(&bb[v].g);
 		*a->b = pgm_read_byte(&bb[v].b);
-		period(MSEC(370));
+
+		sleep(SOFT, MSEC(370));
+#endif
 	}
 }
 
@@ -182,12 +186,13 @@ pwm(void *arg)
 {
 	struct pwmarg *a = (struct pwmarg *)arg;
 	uint16_t on, off, maxval;;
-	uint32_t d = deadline();
-	uint32_t r = release();
+	uint32_t n = now();
 
 	DDRB |= _BV(a->pin);
 	PORTB &= ~_BV(a->pin);
 	maxval = pgm_read_word(&factor[255]);
+
+	update(n, n + USEC(maxval));
 
 	for (;;) {
 		on = pgm_read_word(&factor[*a->value]);
@@ -195,14 +200,12 @@ pwm(void *arg)
 
 		if (*a->value > 0) {
 			PORTB |= _BV(a->pin);
-			r = d += USEC(on);
-			update(r, d);
+			sleep(HARD, USEC(on));
 		}
 
 		if (*a->value < 255) {
 			PORTB &= ~_BV(a->pin);
-			r = d += USEC(off);
-			update(r, d);
+			sleep(HARD, USEC(off));
 		}
 	}
 }

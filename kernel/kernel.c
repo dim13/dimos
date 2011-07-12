@@ -32,7 +32,7 @@ enum { TERMINATED, RUNQ, TIMEQ, WAITQOFFSET };
 #define SCHEDULE		TIMER1_COMPA_vect
 #define DISTANCE(from, to)	((int32_t)((to) - (from)))
 #define EPOCH			0x3FFFFFFFUL			/* XXX */
-#define EPS			(LATENCY / PRESCALE + 1)	/* XXX */
+#define EPS			2 * (LATENCY / PRESCALE + 1)	/* XXX */
 #define NOW(hi, lo)		(((uint32_t)(hi) << 0x10) | (lo))
 
 struct task {
@@ -40,14 +40,11 @@ struct task {
 	uint8_t sph;
 	uint32_t release;
 	uint32_t deadline;
-	uint32_t period;
 	uint8_t state;
 };
 
 struct kernel {
 	struct task *running;
-	struct task *idle;
-	struct task *first;
 	struct task *last;
 	struct task task[TASKS + 1];
 	uint8_t semaphore[SEMAPHORES];
@@ -76,12 +73,12 @@ ISR(SCHEDULE, ISR_NAKED)
 	nexthit = now + EPOCH;
 
 	/* update idle task */
-	kernel.idle->release = now;
-	kernel.idle->deadline = nexthit;
+	kernel.task->release = now;
+	kernel.task->deadline = nexthit;
 
-	rtr = kernel.idle;
+	rtr = kernel.task;
 
-	for (t = kernel.first; t <= kernel.last; t++) {
+	for (t = &kernel.task[1]; t <= kernel.last; t++) {
 		/* release tasks from time-wait-queue */
 		if (t->state == TIMEQ) {
 			if (DISTANCE(now, t->release) < 0)
@@ -137,10 +134,8 @@ init(int idlestack)
 	TIMSK = _BV(OCIE1A);
 
 	kernel.freemem = (void *)(RAMEND - idlestack);
-	kernel.idle = &kernel.task[0];
-	kernel.first = &kernel.task[1];
-	kernel.last = kernel.idle;
-	kernel.running = kernel.idle;
+	kernel.last = kernel.task;
+	kernel.running = kernel.task;
 	kernel.cycles = 0;
 
 	/* Initialize idle task (task 0) */
@@ -151,7 +146,7 @@ init(int idlestack)
 }
 
 void
-task(void (*fun)(void *), uint16_t stack, uint32_t release, uint32_t deadline, void *args)
+task(void (*fun)(void *), uint16_t stack, void *args)
 {
 	struct task *t;
 	uint8_t *sp;
@@ -178,10 +173,9 @@ task(void (*fun)(void *), uint16_t stack, uint32_t release, uint32_t deadline, v
 
 	t = ++kernel.last;
 
-	t->release = release;
-	t->deadline = deadline + release;
-	t->period = deadline;
-	t->state = TIMEQ;
+	t->release = 0;
+	t->deadline = EPOCH;
+	t->state = RUNQ;
 
 	t->spl = LO8(sp);		/* store stack pointer */
 	t->sph = HI8(sp);
@@ -221,15 +215,15 @@ signal(uint8_t sema)
 
 	cli();
 
-	rtr = kernel.idle;
+	rtr = kernel.task;
 
-	for (t = kernel.first; t <= kernel.last; t++) {
+	for (t = &kernel.task[1]; t <= kernel.last; t++) {
 		if (t->state == WAITQOFFSET + sema && \
 		    DISTANCE(t->deadline, rtr->deadline) > 0)
 			rtr = t;
 	}
 
-	if (rtr != kernel.idle) {
+	if (rtr != kernel.task) {
 		rtr->state = RUNQ;
 		SCHEDULE();
 	} else
@@ -243,7 +237,8 @@ update(uint32_t release, uint32_t deadline)
 {
 	cli();
 
-	kernel.running->state = TIMEQ;
+	if (DISTANCE(NOW(kernel.cycles, TCNT1), release) > 0)
+		kernel.running->state = TIMEQ;
 	kernel.running->release = release;
 	kernel.running->deadline = deadline;
 
@@ -251,34 +246,25 @@ update(uint32_t release, uint32_t deadline)
 }
 
 void
-snooze(uint32_t delay)
+sleep(uint8_t type, uint32_t delay)
 {
 	cli();
 
 	kernel.running->state = TIMEQ;
 	kernel.running->release += delay;
-
-	while (DISTANCE(kernel.running->deadline, kernel.running->release) > 0)
-		kernel.running->deadline += kernel.running->period;
-
-	SCHEDULE();
-}
-
-void
-period(uint32_t t)
-{
-	cli();
-
-	if (t)
-		kernel.running->period = t;
-
-	kernel.running->state = TIMEQ;
-	kernel.running->release = kernel.running->deadline;
-	kernel.running->deadline += kernel.running->period;
+	switch (type) {
+	case SOFT:
+		if (DISTANCE(kernel.running->deadline, kernel.running->release) > 0)
+			kernel.running->deadline += delay;
+		break;
+	case HARD:
+		kernel.running->deadline = kernel.running->release;
+		break;
+	}
 
 	SCHEDULE();
 }
-
+		
 uint32_t
 deadline(void)
 {
@@ -305,10 +291,4 @@ suspend(void)
 	kernel.running->state = TERMINATED;
 
 	SCHEDULE();
-}
-
-uint8_t
-running(void)
-{
-	return kernel.running - kernel.idle;
 }

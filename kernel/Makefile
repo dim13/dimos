@@ -1,5 +1,5 @@
 # $Id$
 
-SUBDIR=	remix16 dmx
+SUBDIR=	dmx
 
 .include <bsd.subdir.mk>
