@@ -35,14 +35,15 @@ struct ctrlarg ctrlarg = { &lcdarg, &clockarg };
 int
 main()
 {
-	init(36);
+	init(STACK);
+	init_uart();
 
-#if 0
 	semaphore(0, 1);
-#endif
-	task(heartbeat, STACK, 0);
 
-	task(rgb, STACK + 8, &rgbargs);
+	task(heartbeat, STACK, 0);	// 48
+
+#if 1
+	task(rgb, STACK + 16, &rgbargs);
 	task(pwm, STACK, &pwmargs[0]);
 	task(pwm, STACK, &pwmargs[1]);
 	task(pwm, STACK, &pwmargs[2]);
@@ -52,7 +53,8 @@ main()
 #if 1
 	task(lcd, STACK, &lcdarg);
 	task(clock, STACK, &clockarg);
-	task(ctrl, STACK, &ctrlarg);
+	task(ctrl, STACK + 8, &ctrlarg);
+#endif
 #endif
 
 	for (;;);	/* idle task */

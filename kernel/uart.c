@@ -20,6 +20,8 @@
 #define BAUD	9600
 #endif
 
+#define USE_RXCIE
+
 #include <inttypes.h>
 #include <stdio.h>
 #include <avr/io.h>
@@ -74,7 +76,7 @@ uart_getchar(void)
 	return c;
 }
 
-#if USE_RXCIE
+#ifdef USE_RXCIE
 ISR(SIG_UART_RECV)
 {
 	uint8_t	c = UDR;
@@ -87,6 +89,10 @@ ISR(SIG_UART_RECV)
 	case 'D':	/* dump */
 		while (p <= (uint8_t *)RAMEND)
 			uart_putchar(*p++);
+		break;
+	case 'N':	/* zero */
+		while (p <= (uint8_t *)RAMEND)
+			*p++ = 0xFF;
 		break;
 	case 'T':
 		UCSRB |= _BV(UDRIE);
@@ -115,7 +121,7 @@ void
 init_uart(void)
 {
 	UCSRB = _BV(RXEN) | _BV(TXEN);
-#if USE_RXCIE
+#ifdef USE_RXCIE
 	UCSRB |= _BV(RXCIE);
 #endif
 	UBRRH = UBRRH_VALUE;

@@ -57,8 +57,8 @@ struct adcarg {
 };
 
 struct lcdarg {
-	char first[17];
-	char second[17];
+	char first[18];
+	char second[18];
 	uint8_t x, y;
 };
 
