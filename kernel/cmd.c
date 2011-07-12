@@ -34,8 +34,6 @@ void
 cmd(void *arg)
 {
 	struct rgbarg *a = arg;
-	uint32_t d = deadline();
-	uint32_t r = release();
 	char c;
 	int val;
 	char buf[10], *s;
@@ -63,7 +61,6 @@ cmd(void *arg)
 			}
 		}
 		
-		d = r += MSEC(10);
-		update(r, d);
+		snore(MSEC(10));
 	}
 }

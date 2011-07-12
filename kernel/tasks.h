@@ -57,13 +57,22 @@ struct adcarg {
 };
 
 struct lcdarg {
-	char *first;
-	char *second;
-	uint16_t *adc;
+	char first[17];
+	char second[17];
+	uint8_t x, y;
+};
+
+struct clockarg {
+	uint8_t d, h, m, s;
 };
 
 struct ppmarg {
 	uint16_t *value;
+};
+
+struct ctrlarg {
+	struct lcdarg *lcd;
+	struct clockarg *clock;
 };
 
 void	init_uart(void);
@@ -77,5 +86,7 @@ void	lcd(void *);
 void	adc(void *);
 void	ppm(void *);
 void	cmd(void *);
+void	clock(void *);
+void	ctrl(void *);
 
 #endif

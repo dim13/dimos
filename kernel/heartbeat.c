@@ -30,17 +30,19 @@ heartbeat(void *arg)
 	DDRB |= _BV(PIN);
 	PORTB &= ~_BV(PIN);
 
+	update(0, MSEC(750));
+
 	for (;;) {
-		PORTB ^= _BV(PIN);
-		snooze(MSEC(100));
+		PORTB |= _BV(PIN);
+		sleep(SOFT, MSEC(100));
 
-		PORTB ^= _BV(PIN);
-		snooze(MSEC(50));
+		PORTB &= ~_BV(PIN);
+		sleep(SOFT, MSEC(50));
 
-		PORTB ^= _BV(PIN);
-		snooze(MSEC(100));
+		PORTB |= _BV(PIN);
+		sleep(SOFT, MSEC(100));
 
-		PORTB ^= _BV(PIN);
-		period(MSEC(750));
+		PORTB &= ~_BV(PIN);
+		sleep(SOFT, MSEC(500));
 	}
 }

@@ -15,9 +15,14 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
+#define USE_DELAY
+
 #include <inttypes.h>
 #include <avr/io.h>
+#ifdef USE_DELAY
+#warning "using dalay routines"
 #include <util/delay.h>
+#endif
 #include "kernel.h"
 #include "tasks.h"
 
@@ -56,10 +61,13 @@
 #define	CLOCK			PD6
 #define	E			PD7
 
-#define write_cmd(x, delay)	do { write_byte((x), 0); snooze(USEC(delay)); } while (0)
-#define write_data(x)		do { write_byte((x), 1); snooze(USEC(43)); } while (0)
-//#define write_cmd(x, delay)	do { write_byte((x), 0); _delay_us(delay); } while (0)
-//#define write_data(x)		do { write_byte((x), 1); _delay_us(43); } while (0)
+#ifdef USE_DELAY
+#define write_cmd(x, delay)	do { write_byte((x), 0); _delay_us(delay); } while (0)
+#define write_data(x)		do { write_byte((x), 1); _delay_us(43); } while (0)
+#else
+#define write_cmd(x, delay)	do { write_byte((x), 0); sleep(SOFT, USEC(delay)); } while (0)
+#define write_data(x)		do { write_byte((x), 1); sleep(SOFT, USEC(43)); } while (0)
+#endif
 #define move(line, row)		do { write_cmd(SET_DDRAM_ADDRESS | ((line) << 6) | (row), 39); } while (0)
 #define clear()			do { write_cmd(CLEAR_DISPLAY, 1530); } while (0)
 #define home()			do { write_cmd(RETURN_HOME, 1530); } while (0)
@@ -98,6 +106,7 @@ mvputch(uint8_t line, uint8_t row, char ch)
 	write_data(ch);
 }
 
+#if 0
 static char *
 itoa(int32_t n)
 {
@@ -155,6 +164,7 @@ itohex32(uint32_t x)
 
 	return s;
 }
+#endif
 
 void
 lcd(void *arg)
@@ -164,7 +174,7 @@ lcd(void *arg)
 	PORTDIR |= (_BV(DATA) | _BV(CLOCK) | _BV(E));
 
 	/* task init: wait >40ms */
-	snooze(MSEC(40));
+	update(MSEC(40), MSEC(500));
 
 	/* 8 bit, 2 line, 5x8 font */
 	write_cmd(FUNCTION_SET | DATA_LENGTH_8BIT | TWO_LINES, 39);
@@ -181,9 +191,12 @@ lcd(void *arg)
 
 	home();
 
+	*a->first = '\0';
+	*a->second = '\0';
+
 	for (;;) {
-		mvputs(0, 0, itoa(a->adc[0]));
-		mvputs(1, 0, itoa(a->adc[1]));
-		period(MSEC(50));
+		mvputs(0, 0, a->first);
+		mvputs(1, 0, a->second);
+		sleep(SOFT, MSEC(40));	/* 25 Hz */
 	}
 }

@@ -17,45 +17,34 @@
 
 #include <inttypes.h>
 #include <avr/io.h>
+#include <stdlib.h>
 #include "kernel.h"
 #include "tasks.h"
 
-/* globals */
-uint8_t	red, green, blue;
-struct rgbarg rgbargs = { &red, &green, &blue };
-struct pwmarg pwmargs[] = {
-	{ &red, PB2 },
-	{ &green, PB3 },
-	{ &blue, PB4 }
-};
-struct lcdarg lcdarg;
-struct clockarg clockarg;
-struct ctrlarg ctrlarg = { &lcdarg, &clockarg };
-
-int
-main()
+void
+clock(void *arg)
 {
-	init(36);
+	struct clockarg *a = arg;
 
-#if 0
-	semaphore(0, 1);
-#endif
-	task(heartbeat, STACK, 0);
+	a->s = a->m = a->h = a->d = 0;
 
-	task(rgb, STACK + 8, &rgbargs);
-	task(pwm, STACK, &pwmargs[0]);
-	task(pwm, STACK, &pwmargs[1]);
-	task(pwm, STACK, &pwmargs[2]);
-#if 0
-	task(cmd, STACK, &rgbargs);
-#endif
-#if 1
-	task(lcd, STACK, &lcdarg);
-	task(clock, STACK, &clockarg);
-	task(ctrl, STACK, &ctrlarg);
-#endif
+	update(0, SEC(1));
 
-	for (;;);	/* idle task */
+	for (;;) {
+		a->s += 1;
+		if (a->s == 60) {
+			a->s = 0;
+			a->m += 1;
+		}
+		if (a->m == 60) {
+			a->m = 0;
+			a->h += 1;
+		}
+		if (a->h == 24) {
+			a->h = 0;
+			a->d += 1;
+		}
 
-	return 0;
+		sleep(HARD, SEC(1));
+	}
 }

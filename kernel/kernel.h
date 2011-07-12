@@ -62,20 +62,19 @@
 #define USEC(T)	((uint32_t)(T) * ((F_CPU / 1000000) / PRESCALE))
 
 void init(int idlestack);
-void task(void (*fun)(void *), uint16_t stacksize, uint32_t release, uint32_t deadline, void *args);
+void task(void (*fun)(void *), uint16_t stack, void *args);
 void semaphore(uint8_t semnbr, uint8_t initVal);
 
 void wait(uint8_t semnbr);
 void signal(uint8_t semnbr);
+void suspend(void);
 
 void update(uint32_t release, uint32_t deadline);
-void snooze(uint32_t delay);
-void period(uint32_t t);
-void suspend(void);
+enum { SOFT, HARD };
+void sleep(uint8_t, uint32_t);
 
 uint32_t now(void);
 uint32_t release(void);
 uint32_t deadline(void);
-uint8_t running(void);
 
 #endif
