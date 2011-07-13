@@ -146,7 +146,7 @@ init(int stack)
 }
 
 void
-task(void (*fun)(void *), uint16_t stack, void *args)
+exec(void (*fun)(void *), uint16_t stack, void *args)
 {
 	struct task *t;
 	uint8_t *sp;

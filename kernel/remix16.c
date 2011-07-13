@@ -35,10 +35,10 @@ main()
 
 	semaphore(0, 1);
 
-	task(heartbeat, STACK, MSEC(0), MSEC(750), 0);
-	task(adc, STACK, MSEC(1), MSEC(60), &adcarg);
-	task(ppm, STACK, MSEC(3), MSEC(20), &ppmarg);
-	task(lcd, STACK, MSEC(7), MSEC(100), &lcdarg);
+	exec(heartbeat, STACK, MSEC(0), MSEC(750), 0);
+	exec(adc, STACK, MSEC(1), MSEC(60), &adcarg);
+	exec(ppm, STACK, MSEC(3), MSEC(20), &ppmarg);
+	exec(lcd, STACK, MSEC(7), MSEC(100), &lcdarg);
 
 	for (;;);
 

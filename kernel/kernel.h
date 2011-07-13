@@ -61,8 +61,8 @@
 #define MSEC(T)	((uint32_t)(T) * ((F_CPU / 1000) / PRESCALE))
 #define USEC(T)	((uint32_t)(T) * ((F_CPU / 1000000) / PRESCALE))
 
-void init(int idlestack);
-void task(void (*fun)(void *), uint16_t stack, void *args);
+void init(int stack);
+void exec(void (*fun)(void *), uint16_t stack, void *args);
 void semaphore(uint8_t semnbr, uint8_t initVal);
 
 void wait(uint8_t semnbr);
