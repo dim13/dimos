@@ -40,20 +40,20 @@ main()
 
 	semaphore(0, 1);
 
-	task(heartbeat, STACK, 0);	// 48
+	exec(heartbeat, STACK, 0);	// 48
 
 #if 1
-	task(rgb, STACK + 16, &rgbargs);
-	task(pwm, STACK, &pwmargs[0]);
-	task(pwm, STACK, &pwmargs[1]);
-	task(pwm, STACK, &pwmargs[2]);
+	exec(rgb, STACK + 16, &rgbargs);
+	exec(pwm, STACK, &pwmargs[0]);
+	exec(pwm, STACK, &pwmargs[1]);
+	exec(pwm, STACK, &pwmargs[2]);
 #if 0
-	task(cmd, STACK, &rgbargs);
+	exec(cmd, STACK, &rgbargs);
 #endif
 #if 1
-	task(lcd, STACK, &lcdarg);
-	task(clock, STACK, &clockarg);
-	task(ctrl, STACK + 8, &ctrlarg);
+	exec(lcd, STACK, &lcdarg);
+	exec(clock, STACK, &clockarg);
+	exec(ctrl, STACK + 8, &ctrlarg);
 #endif
 #endif
 
