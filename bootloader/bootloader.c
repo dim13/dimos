@@ -37,35 +37,40 @@ transfer(int fd, struct page *p, int pages, int pagesize)
 	fprintf(stderr, "\nwriting: ");
 
 	for (n = 0; n < pages; n++) {
-		if (n < GUARDPAGE)
-			fprintf(stderr, "%c", ".o"[p[n].dirty]);
-		else {
+		if (n >= GUARDPAGE) {
 			fprintf(stderr, "x");
 			continue;
 		}
 
-		if (p[n].dirty) {
-			put('@', fd);
-			put(n, fd);
-			sum = n;
-			for (off = 0; off < pagesize; off++) {
-				put(p[n].data[off], fd);
-				sum += p[n].data[off];
-			}
-			put(sum, fd);
-			switch (get(fd)) {
-			case '.':
-				break;	/* success, next page */
-			case '!':
-				n--;	/* error stay on the same page */
-				fprintf(stderr, "E");
-				break;
-			default:
-				if (!maxerr--)
-					goto fubar;
-				fprintf(stderr, "\ngarbage on the line, retry\n");
-				return transfer(fd, p, pages, pagesize);
-			}
+		if (!p[n].dirty) {
+			fprintf(stderr, ".");
+			continue;
+		}
+			
+		put('@', fd);
+		put(n, fd);
+		sum = n;
+		for (off = 0; off < pagesize; off++) {
+			put(p[n].data[off], fd);
+			sum += p[n].data[off];
+		}
+		put(sum, fd);
+		switch (get(fd)) {
+		case '.':
+			fprintf(stderr, "o");
+			maxerr = 0;
+			break;	/* success, next page */
+		case '!':
+			n--;	/* error stay on the same page */
+			fprintf(stderr, "E");
+			if (!maxerr--)
+				goto fubar;
+			break;
+		default:
+			if (!maxerr--)
+				goto fubar;
+			fprintf(stderr, "\ngarbage on the line, retry\n");
+			return transfer(fd, p, pages, pagesize);
 		}
 	}
 
