@@ -32,7 +32,7 @@ enum { TERMINATED, RUNQ, TIMEQ, WAITQOFFSET };
 #define SCHEDULE		TIMER1_COMPA_vect
 #define DISTANCE(from, to)	((int32_t)((to) - (from)))
 #define EPOCH			0x3FFFFFFFUL			/* XXX */
-#define EPS			2 * (LATENCY / PRESCALE + 1)	/* XXX */
+#define EPS			(LATENCY / PRESCALE + 1)	/* XXX */
 #define NOW(hi, lo)		(((uint32_t)(hi) << 0x10) | (lo))
 
 struct task {
