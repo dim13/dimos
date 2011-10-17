@@ -112,10 +112,10 @@ ISR(SCHEDULE, ISR_NAKED)
 
 	if (timeleft < 0xFFFF)
 		OCR1A = timeleft;
-	else if (TCNT1 < 0xFFFF - EPS)
-		OCR1A = 0;
-	else
+	else if (TCNT1 > 0xFFFF - EPS)
 		OCR1A = EPS;
+	else
+		OCR1A = 0;
 
 	TIMSK |= _BV(OCIE1A);
 
