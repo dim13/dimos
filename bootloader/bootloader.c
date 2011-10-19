@@ -31,6 +31,7 @@ transfer(int fd, struct page *p, int pages, int pagesize)
 	unsigned char sum;
 
 	fprintf(stderr, "waiting for bootloader ...");
+	put('-', fd);
 	while (get(fd) != '+')
 		;
 
