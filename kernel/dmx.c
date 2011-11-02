@@ -20,7 +20,9 @@
 #include "kernel.h"
 #include "tasks.h"
 
-struct rgbarg rgbargs;
+uint16_t adcval[ADCCHANNELS];
+
+struct rgbarg rgbargs = { 0, 0, 0, 0, &adcval[0] };
 
 struct pwmarg pwmargs[] = {
 	{ &rgbargs.r, PB2, &rgbargs.m },
@@ -28,7 +30,10 @@ struct pwmarg pwmargs[] = {
 	{ &rgbargs.b, PB4, &rgbargs.m }
 };
 
+struct adcarg adcarg = { adcval };
+
 struct lcdarg lcdarg;
+struct clockarg clockarg = { &lcdarg, &adcarg };
 
 int
 main()
@@ -41,7 +46,7 @@ main()
 #endif
 
 #if 1
-	exec(rgb, STACK + 16, &rgbargs);
+	exec(rgb, STACK, &rgbargs);
 	exec(pwm, STACK, &pwmargs[0]);
 	exec(pwm, STACK, &pwmargs[1]);
 	exec(pwm, STACK, &pwmargs[2]);
@@ -52,10 +57,14 @@ main()
 #endif
 
 #if 1
-	exec(lcd, STACK, &lcdarg);
-	exec(clock, STACK, &lcdarg);
+	exec(adc, STACK, &adcarg);
 #endif
-	idle();
+
+#if 1
+	exec(lcd, STACK, &lcdarg);
+	exec(clock, STACK, &clockarg);
+#endif
+	IDLE();
 
 	return 0;
 }

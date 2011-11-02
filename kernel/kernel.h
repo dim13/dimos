@@ -89,10 +89,12 @@
 #define SEC1(T)	((uint32_t)(T) * ((F_CPU / 10) / PRESCALE))
 #define SEC0(T)	((uint32_t)(T) * ((F_CPU / 1) / PRESCALE))
 
+#define IDLE()	do { asm volatile ("nop"); } while (1)
+
 /* __BEGIN_DECLS */
 
-void init(int stack);
-void exec(void (*fun)(void *), uint16_t stack, void *args);
+void init(uint8_t stack);
+void exec(void (*fun)(void *), uint8_t stack, void *args);
 void semaphore(uint8_t semnbr, uint8_t initVal);
 
 void wait(uint8_t semnbr);
@@ -109,7 +111,6 @@ uint32_t now(void);
 uint32_t release(void);
 uint32_t deadline(void);
 uint8_t running(void);
-void idle(void);
 
 /* __END_DECLS */
 

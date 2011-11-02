@@ -18,8 +18,8 @@
 #ifndef __TASKS_H
 #define __TASKS_H
 
-#define ADCCHANNELS 6
-#define ADCPRESCALE 128
+#define ADCCHANNELS 4		/* max 6 */
+#define ADCPRESCALE 128		/* 50-200 kHz for max resolution */
 
 #if (ADCPRESCALE == 1)
 #define ADC_FLAGS 0
@@ -46,6 +46,7 @@ struct rgbarg {
 	uint8_t g;
 	uint8_t b;
 	uint8_t m;
+	uint16_t *v;
 };
 
 struct pwmarg {
@@ -64,6 +65,11 @@ struct lcdarg {
 	char first[18];
 	char second[18];
 	uint8_t x, y;
+};
+
+struct clockarg {
+	struct lcdarg *lcd;
+	struct adcarg *adc;
 };
 
 struct ppmarg {

@@ -17,36 +17,32 @@
 
 #include <inttypes.h>
 #include <avr/io.h>
+#include <avr/interrupt.h>
 #include "kernel.h"
 #include "tasks.h"
 
 #define MUXMASK	0x07
-
-uint16_t
-rdadc(uint8_t ch)
-{
-	ADMUX &= ~MUXMASK;
-	ADMUX |= (ch & MUXMASK);
-	ADCSRA |= _BV(ADSC);
-	loop_until_bit_is_clear(ADCSRA, ADSC);
-
-	return ADCW;
-}
+#define DL	MSEC(20)
 
 void
 adc(void *arg)
 {
 	struct adcarg *a = (struct adcarg *)arg;
-	uint8_t i;
+	uint8_t i = 0;
 
 	ADCSRA |= (_BV(ADEN) | ADC_FLAGS);
-//	ADMUX |= _BV(REFS0);
+
+	update(0, DL);
 
 	for (;;) {
-		wait(0);
-		for (i = 0; i < ADCCHANNELS; i++)
-			a->value[i] = rdadc(i);
-		signal(0);
-		period(MSEC(8 * ADCCHANNELS));
+		if (bit_is_clear(ADCSRA, ADSC)) {
+			cli();
+			a->value[i] = ADCW;
+			sei();
+			ADMUX = i;
+			ADCSRA |= _BV(ADSC);
+			i = (i + 1) % ADCCHANNELS;
+		}
+		update(MSEC(40), DL);
 	}
 }

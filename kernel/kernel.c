@@ -35,19 +35,19 @@ enum State { TERMINATED, RUNQ, TIMEQ, WAITQOFFSET };
 #define NOW(hi, lo)		(((uint32_t)(hi) << 0x10) | (lo))
 
 struct task {
-	uint8_t state;
-	uint16_t sp;		/* stack pointer */
 	uint32_t release;
 	uint32_t deadline;
+	uint16_t sp;		/* stack pointer */
+	uint8_t state;
 };
 
 struct kernel {
 	struct task *running;
 	struct task *last;
 	struct task task[TASKS + 1];
-	uint8_t semaphore[SEMAPHORES];
-	uint8_t *freemem;
 	uint16_t cycles;
+	uint8_t *freemem;
+	uint8_t semaphore[SEMAPHORES];
 } kernel;
 
 ISR(TIMER1_OVF_vect)
@@ -100,7 +100,7 @@ ISR(TIMER1_COMPA_vect, ISR_NAKED)
 }
 
 void
-init(int stack)
+init(uint8_t stack)
 {
 	cli();
 
@@ -123,7 +123,7 @@ init(int stack)
 }
 
 void
-exec(void (*fun)(void *), uint16_t stack, void *args)
+exec(void (*fun)(void *), uint8_t stack, void *args)
 {
 	struct task *t;
 	uint8_t *sp;
@@ -286,11 +286,4 @@ running(void)
 	sei();
 
 	return ret;
-}
-
-void
-idle(void)
-{
-	for (;;)
-		asm volatile ("nop");
 }
