@@ -42,12 +42,16 @@
 #endif
 
 struct rgbarg {
-	uint8_t *r, *g, *b;
+	uint8_t r;
+	uint8_t g;
+	uint8_t b;
+	uint8_t m;
 };
 
 struct pwmarg {
 	uint8_t *value;
 	uint8_t pin;
+	uint8_t *mval;
 };
 
 struct adcarg {
@@ -62,17 +66,8 @@ struct lcdarg {
 	uint8_t x, y;
 };
 
-struct clockarg {
-	uint8_t d, h, m, s;
-};
-
 struct ppmarg {
 	uint16_t *value;
-};
-
-struct ctrlarg {
-	struct lcdarg *lcd;
-	struct clockarg *clock;
 };
 
 void	init_uart(void);
@@ -87,6 +82,5 @@ void	adc(void *);
 void	ppm(void *);
 void	cmd(void *);
 void	clock(void *);
-void	ctrl(void *);
 
 #endif

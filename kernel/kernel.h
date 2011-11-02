@@ -19,47 +19,77 @@
 #define __KERNEL_H
 
 #ifndef TASKS
-#warning "TASKS not set, fallback to default"
+#warning TASKS not set, fallback to default
 #define TASKS 8
 #endif
 
 #ifndef SEMAPHORES
-#warning "SEMAPHORES not set, fallback to default"
+#warning SEMAPHORES not set, fallback to default
 #define SEMAPHORES 8
 #endif
 
 #ifndef STACK
-#warning "STACK not set, fallback to default"
+#warning STACK not set, fallback to default
 #define STACK 64
 #endif
 
 #ifndef F_CPU
-#warning "F_CPU not set, fallback to default"
-#define F_CPU 1000000
+#warning F_CPU not set, fallback to default
+#define F_CPU 16000000
 #endif
 
 #ifndef PRESCALE
-#warning "PRESCALE not set, fallback to default"
+#warning PRESCALE not set, fallback to default
 #define PRESCALE 1
 #endif
 
 #if (PRESCALE == 1)
-#define TIMER_FLAGS _BV(CS10)
+#define TIMER_FLAGS (_BV(CS10))
 #elif (PRESCALE == 8)
-#define TIMER_FLAGS _BV(CS11)
+#define TIMER_FLAGS (_BV(CS11))
 #elif (PRESCALE == 64)
 #define TIMER_FLAGS (_BV(CS11) | _BV(CS10))
 #elif (PRESCALE == 256)
-#define TIMER_FLAGS _BV(CS12)
+#define TIMER_FLAGS (_BV(CS12))
 #elif (PRESCALE == 1024)
 #define TIMER_FLAGS (_BV(CS12) | _BV(CS10))
 #else
-#warning "invalid PRESCALE value"
+#error invalid PRESCALE value
 #endif
 
-#define SEC(T)	((uint32_t)(T) * (F_CPU / PRESCALE))
-#define MSEC(T)	((uint32_t)(T) * ((F_CPU / 1000) / PRESCALE))
-#define USEC(T)	((uint32_t)(T) * ((F_CPU / 1000000) / PRESCALE))
+#define MHz	((F_CPU / 1000000) / PRESCALE)
+#define kHz	((F_CPU / 1000) / PRESCALE)
+#define Hz	(F_CPU / PRESCALE)
+
+#if (!MHz)
+#error MHz value too small, adjust PRESCALE and/or F_CPU
+#endif
+
+#if (!kHz)
+#error kHz value too small, adjust PRESCALE and/or F_CPU
+#endif
+
+#if (!Hz)
+#error Hz value too small, adjust PRESCALE and/or F_CPU
+#endif
+
+#define USECMAX	(INT32_MAX / MHz)
+#define MSECMAX	(INT32_MAX / kHz)
+#define SECMAX	(INT32_MAX / Hz)
+
+#define USEC(T)	((uint32_t)(T) * MHz)
+#define MSEC(T)	((uint32_t)(T) * kHz)
+#define SEC(T)	((uint32_t)(T) * Hz)
+
+#define SEC6(T)	((uint32_t)(T) * ((F_CPU / 1000000) / PRESCALE))
+#define SEC5(T)	((uint32_t)(T) * ((F_CPU / 100000) / PRESCALE))
+#define SEC4(T)	((uint32_t)(T) * ((F_CPU / 10000) / PRESCALE))
+#define SEC3(T)	((uint32_t)(T) * ((F_CPU / 1000) / PRESCALE))
+#define SEC2(T)	((uint32_t)(T) * ((F_CPU / 100) / PRESCALE))
+#define SEC1(T)	((uint32_t)(T) * ((F_CPU / 10) / PRESCALE))
+#define SEC0(T)	((uint32_t)(T) * ((F_CPU / 1) / PRESCALE))
+
+/* __BEGIN_DECLS */
 
 void init(int stack);
 void exec(void (*fun)(void *), uint16_t stack, void *args);
@@ -69,13 +99,18 @@ void wait(uint8_t semnbr);
 void signal(uint8_t semnbr);
 void suspend(void);
 
+void set(uint32_t release, uint32_t deadline);
 void update(uint32_t release, uint32_t deadline);
-enum { SOFT, HARD };
-void sleep(uint8_t, uint32_t);
+enum Sleep { SOFT, HARD };
+enum Critical { ON, OFF };
+void sleep(enum Sleep, uint32_t);
 
 uint32_t now(void);
 uint32_t release(void);
 uint32_t deadline(void);
 uint8_t running(void);
+void idle(void);
+
+/* __END_DECLS */
 
 #endif

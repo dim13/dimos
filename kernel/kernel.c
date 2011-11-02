@@ -25,22 +25,20 @@
 #include "kernel.h"
 #include "stack.h"
 
-enum { TERMINATED, RUNQ, TIMEQ, WAITQOFFSET };
+enum State { TERMINATED, RUNQ, TIMEQ, WAITQOFFSET };
 
 #define LO8(x)			((uint8_t)((uint16_t)(x)))
 #define HI8(x)			((uint8_t)((uint16_t)(x) >> 8))
 #define SCHEDULE		TIMER1_COMPA_vect
 #define DISTANCE(from, to)	((int32_t)((to) - (from)))
-#define EPOCH			0x3FFFFFFFUL			/* XXX */
-#define EPS			(LATENCY / PRESCALE + 1)	/* XXX */
+#define EPOCH			(INT32_MAX >> 1)
 #define NOW(hi, lo)		(((uint32_t)(hi) << 0x10) | (lo))
 
 struct task {
-	uint8_t spl;
-	uint8_t sph;
+	uint8_t state;
+	uint16_t sp;		/* stack pointer */
 	uint32_t release;
 	uint32_t deadline;
-	uint8_t state;
 };
 
 struct kernel {
@@ -52,28 +50,24 @@ struct kernel {
 	uint16_t cycles;
 } kernel;
 
-ISR(SCHEDULE, ISR_NAKED)
+ISR(TIMER1_OVF_vect)
+{
+	++kernel.cycles;
+}
+
+ISR(TIMER1_COMPA_vect, ISR_NAKED)
 {
 	struct task *t;
 	struct task *rtr;
 	uint32_t now;
 	uint32_t nexthit;
-	int32_t timeleft;
 
 	PUSH_ALL();
 
-	TIMSK &= ~_BV(OCIE1A);		/* turn off output compare 1A */
-
-	if (bit_is_set(TIFR, TOV1)) {
-		TIFR |= _BV(TOV1);	/* reset flag */
-		++kernel.cycles;
-	}
-
 	now = NOW(kernel.cycles, TCNT1);
-	nexthit = now + EPOCH;
+	nexthit = EPOCH + now;
 
 	/* update idle task */
-	kernel.task->release = now;
 	kernel.task->deadline = nexthit;
 
 	rtr = kernel.task;
@@ -81,66 +75,49 @@ ISR(SCHEDULE, ISR_NAKED)
 	for (t = &kernel.task[1]; t <= kernel.last; t++) {
 		/* release tasks from time-wait-queue */
 		if (t->state == TIMEQ) {
-			if (DISTANCE(now, t->release) < 0)
+			if (DISTANCE(t->release, now) > 0)
 				t->state = RUNQ;
 			else if (DISTANCE(t->release, nexthit) > 0)
 				nexthit = t->release;
 		}
 
 		/* find next task to run */
-		if (t->state == RUNQ && \
-		    DISTANCE(t->deadline, rtr->deadline) > 0)
-			rtr = t;
+		if (t->state == RUNQ) {
+			if (DISTANCE(t->deadline, rtr->deadline) > 0)
+				rtr = t;
+		}
 	}
 
-	if (kernel.running != rtr) {
-		/* switch task */
-		kernel.running->spl = SPL;
-		kernel.running->sph = SPH;
-		SPL = rtr->spl;
-		SPH = rtr->sph;
-		kernel.running = rtr;
-	}
+	/* switch task */
+	kernel.running->sp = SP;
+	SP = rtr->sp;
+	kernel.running = rtr;
 
-	now = NOW(kernel.cycles, TCNT1);
-	timeleft = DISTANCE(now, nexthit);
-
-	if (timeleft < EPS)
-		timeleft = EPS;
-
-	timeleft += TCNT1;
-
-	if (timeleft < 0xFFFF)
-		OCR1A = timeleft;
-	else if (TCNT1 > 0xFFFF - EPS)
-		OCR1A = EPS;
-	else
-		OCR1A = 0;
-
-	TIMSK |= _BV(OCIE1A);
-
+	OCR1A = (uint16_t)nexthit;
+	
 	POP_ALL();
-
 	reti();
 }
 
 void
 init(int stack)
 {
-	/* Set up timer 1 */
-	TCNT1 = 0;			/* reset counter 1 */
-	TCCR1A = 0;			/* normal operation */
-	TCCR1B = TIMER_FLAGS;
-	TIMSK = _BV(OCIE1A);
+	cli();
 
+	/* Set up timer 1 */
+	TCNT1 = 0;				/* reset timer */
+	TCCR1A = 0;				/* normal operation */
+	TCCR1B = TIMER_FLAGS;			/* prescale */
+	TIMSK = (_BV(OCIE1A) | _BV(TOIE1));	/* enable interrupts */
+
+	kernel.cycles = 0;
 	kernel.freemem = (void *)(RAMEND - stack);
 	kernel.last = kernel.task;
 	kernel.running = kernel.task;
-	kernel.cycles = 0;
 
 	/* Initialize idle task (task 0) */
-	kernel.running->release = 0;
 	kernel.running->deadline = EPOCH;
+	kernel.running->state = RUNQ;
 
 	sei();
 }
@@ -150,7 +127,7 @@ exec(void (*fun)(void *), uint16_t stack, void *args)
 {
 	struct task *t;
 	uint8_t *sp;
-	int     i;
+	uint8_t i;
 
 	cli();
 
@@ -158,27 +135,25 @@ exec(void (*fun)(void *), uint16_t stack, void *args)
 	kernel.freemem -= stack;
 
 	/* initialize stack */
-	*sp-- = LO8(fun);		/* store PC(lo) */
-	*sp-- = HI8(fun);		/* store PC(hi) */
+	*sp-- = LO8(fun);		/* PC(lo) */
+	*sp-- = HI8(fun);		/* PC(hi) */
 
-	for (i = 0; i < 25; i++)
-		*sp-- = 0;		/* store r1-r0, SREG, r2-r23 */
+	for (i = 0; i < 25; i++)	/* r1, r0, SREG, r2-r23 */
+		*sp-- = 0;
+	
+	*sp-- = LO8(args);		/* r24 */
+	*sp-- = HI8(args);		/* r25 */
 
-	/* Save args in r24-25 (input arguments stored in these registers) */
-	*sp-- = LO8(args);
-	*sp-- = HI8(args);
-
-	for (i = 0; i < 6; i++)
-		*sp-- = 0;		/* store r26-r31 */
+	for (i = 0; i < 6; i++)		/* r26-r31 */
+		*sp-- = 0;
 
 	t = ++kernel.last;
 
 	t->release = 0;
 	t->deadline = EPOCH;
-	t->state = RUNQ;
+	t->state = TIMEQ;
 
-	t->spl = LO8(sp);		/* store stack pointer */
-	t->sph = HI8(sp);
+	t->sp = (uint16_t)sp;		/* SP */
 
 	SCHEDULE();
 }
@@ -201,44 +176,42 @@ wait(uint8_t sema)
 	if (kernel.semaphore[sema] == 0) {
 		kernel.running->state = WAITQOFFSET + sema;
 		SCHEDULE();
-	} else
+	} else {
 		--kernel.semaphore[sema];
-
-	sei();
+		sei();
+	}
 }
 
 void
 signal(uint8_t sema)
 {
-	struct task *t;
-	struct task *rtr;
+	struct task *t, *rtr;
 
 	cli();
 
 	rtr = kernel.task;
 
 	for (t = &kernel.task[1]; t <= kernel.last; t++) {
-		if (t->state == WAITQOFFSET + sema && \
-		    DISTANCE(t->deadline, rtr->deadline) > 0)
-			rtr = t;
+		if (t->state == WAITQOFFSET + sema)
+			if (DISTANCE(t->deadline, rtr->deadline) > 0)
+				rtr = t;
 	}
 
 	if (rtr != kernel.task) {
 		rtr->state = RUNQ;
 		SCHEDULE();
-	} else
+	} else {
 		++kernel.semaphore[sema];
-
-	sei();
+		sei();
+	}
 }
 
 void
-update(uint32_t release, uint32_t deadline)
+set(uint32_t release, uint32_t deadline)
 {
 	cli();
 
-	if (DISTANCE(NOW(kernel.cycles, TCNT1), release) > 0)
-		kernel.running->state = TIMEQ;
+	kernel.running->state = TIMEQ;
 	kernel.running->release = release;
 	kernel.running->deadline = deadline;
 
@@ -246,41 +219,51 @@ update(uint32_t release, uint32_t deadline)
 }
 
 void
-sleep(uint8_t type, uint32_t delay)
+update(uint32_t release, uint32_t deadline)
 {
 	cli();
 
 	kernel.running->state = TIMEQ;
-	kernel.running->release += delay;
-	switch (type) {
-	case SOFT:
-		if (DISTANCE(kernel.running->deadline, kernel.running->release) > 0)
-			kernel.running->deadline += delay;
-		break;
-	case HARD:
-		kernel.running->deadline = kernel.running->release;
-		break;
-	}
+	kernel.running->release += release;
+	kernel.running->deadline = kernel.running->release + deadline;
 
 	SCHEDULE();
 }
-		
+
 uint32_t
 deadline(void)
 {
-	return kernel.running->deadline;
+	uint32_t ret;
+
+	cli();
+	ret = kernel.running->deadline;
+	sei();
+
+	return ret;
 }
 
 uint32_t
 release(void)
 {
-	return kernel.running->release;
+	uint32_t ret;
+
+	cli();
+	ret = kernel.running->release;
+	sei();
+
+	return ret;
 }
 
 uint32_t
 now(void)
 {
-	return NOW(kernel.cycles, TCNT1);
+	uint32_t ret;
+
+	cli();
+	ret = NOW(kernel.cycles, TCNT1);
+	sei();
+
+	return ret;
 }
 
 void
@@ -296,5 +279,18 @@ suspend(void)
 uint8_t
 running(void)
 {
-	return kernel.running - kernel.task;
+	uint8_t ret;
+
+	cli();
+	ret = kernel.running - kernel.task;
+	sei();
+
+	return ret;
+}
+
+void
+idle(void)
+{
+	for (;;)
+		asm volatile ("nop");
 }

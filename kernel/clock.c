@@ -17,6 +17,7 @@
 
 #include <inttypes.h>
 #include <avr/io.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include "kernel.h"
 #include "tasks.h"
@@ -24,27 +25,31 @@
 void
 clock(void *arg)
 {
-	struct clockarg *a = arg;
+	struct lcdarg *a = arg;
+	uint8_t d, h, m, s;
 
-	a->s = a->m = a->h = a->d = 0;
+	d = h = m = s = 0;
 
-	update(0, SEC(1));
+	update(0, SEC(500));
 
 	for (;;) {
-		a->s += 1;
-		if (a->s == 60) {
-			a->s = 0;
-			a->m += 1;
+		s += 1;
+		if (s == 60) {
+			s = 0;
+			m += 1;
 		}
-		if (a->m == 60) {
-			a->m = 0;
-			a->h += 1;
+		if (m == 60) {
+			m = 0;
+			h += 1;
 		}
-		if (a->h == 24) {
-			a->h = 0;
-			a->d += 1;
+		if (h == 24) {
+			h = 0;
+			d += 1;
 		}
 
-		sleep(HARD, SEC(1));
+		sprintf(a->first, "%8lx", now());
+		sprintf(a->second, "%4d:%.2d:%.2d:%.2d", d, h, m, s);
+
+		update(SEC(1), MSEC(500));
 	}
 }

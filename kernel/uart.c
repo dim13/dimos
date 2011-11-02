@@ -84,6 +84,7 @@ ISR(SIG_UART_RECV)
 
 	switch (c) {
 	case 'R':	/* reboot */
+	case '-':	/* reboot */
 		wdt_enable(WDTO_15MS);
 		break;
 	case 'D':	/* dump */

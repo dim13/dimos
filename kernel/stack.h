@@ -18,9 +18,6 @@
 #ifndef __STACK_H
 #define __STACK_H
 
-/* average latency in cycles */
-#define LATENCY 72
-
 /* 68 cycles */
 #define PUSH_ALL() asm volatile (		\
 		"push	r1		\n"	\
