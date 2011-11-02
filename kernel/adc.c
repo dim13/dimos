@@ -39,9 +39,9 @@ adc(void *arg)
 			cli();
 			a->value[i] = ADCW;
 			sei();
+			i = (i + 1) % ADCCHANNELS;
 			ADMUX = i;
 			ADCSRA |= _BV(ADSC);
-			i = (i + 1) % ADCCHANNELS;
 		}
 		update(MSEC(500 / ADCCHANNELS), DL);
 	}
