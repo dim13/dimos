@@ -12,7 +12,7 @@ SIZE=		avr-size
 CFLAGS=		-Wall -Os -mmcu=${MCU} \
 		-DF_CPU=${F_CPU} -DPRESCALE=${PRESCALE} -DBAUD=${BAUD} \
 		-DSTACK=${STACK} -DTASKS=${TASKS} -DSEMAPHORES=${SEMAPHORES}
-LDFLAGS=	-Wl,-Map,${PROG}.map
+LDFLAGS=	-mmcu=${MCU} -Wl,-Map,${PROG}.map
 
 .SUFFIXES:	.lst .hex .bin .srec .ehex .ebin .esrec
 
