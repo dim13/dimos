@@ -28,22 +28,23 @@ rgb(void *arg)
 {
 	struct rgbarg *a = (struct rgbarg *)arg;
 	uint16_t i = 0;
-	uint8_t r, g, b;
+	uint8_t r, g, b, v;
 
 	cli();
 	a->m = 255 >> 4;
 	sei();
 
-	update(now(), MSEC(500));
+	update(0, MSEC(500));
 
 	for (;;) {
 		i = (i + 1) % 360;
-		hsv(&r, &g, &b, i, 255, 255);
+		hsv(&r, &g, &b, i, 255, v);
 
 		cli();
 		a->r = r >> 4;
 		a->g = g >> 4;
 		a->b = b >> 4;
+		v = *a->v >> 2;
 		sei();
 
 		update(MSEC(500), MSEC(500));
@@ -64,7 +65,7 @@ pwm(void *arg)
 	cli();
 	maxval = *a->mval;
 	sei();
-	update(now(), DL);
+	update(0, DL);
 
 	for (;;) {
 		cli();

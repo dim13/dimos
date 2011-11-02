@@ -106,7 +106,7 @@ lcd(void *arg)
 	PORTDIR |= (_BV(DATA) | _BV(CLOCK) | _BV(E));
 
 	/* task init: wait >40ms */
-	update(now() + MSEC(40), MSEC(500));
+	update(MSEC(40), MSEC(500));
 
 	/* 8 bit, 2 line, 5x8 font */
 	write_cmd(FUNCTION_SET | DATA_LENGTH_8BIT | TWO_LINES, 39);

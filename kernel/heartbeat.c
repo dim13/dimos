@@ -32,7 +32,7 @@ heartbeat(void *arg)
 
 #define DL	MSEC(5)
 
-	update(now(), DL);
+	update(0, DL);
 
 	for (;;) {
 		PORTB |= _BV(PIN);

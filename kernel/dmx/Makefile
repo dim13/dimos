@@ -8,13 +8,14 @@ PRESCALE=	8	# res 0.5usec	cycle 32.7msec
 #PRESCALE=	64	# res 4usec	cycle 262msec
 #PRESCALE=	256	# res 16msec	cycle 1 sec
 #PRESCALE=	1024	# res 64msec	cycle 4 sec
-STACK=		48
+#STACK=		48
+STACK=		64
 TASKS=		8
-SEMAPHORES=	8
+SEMAPHORES=	4
 BAUD=		9600
 
 PROG=	dmx
-SRCS=	dmx.c heartbeat.c rgb.c hsv.c clock.c lcd3.c uart.c
+SRCS=	dmx.c heartbeat.c rgb.c hsv.c clock.c lcd3.c uart.c adc.c
 NOMAN=
 
 .include <bsd.prog.mk>

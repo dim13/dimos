@@ -25,7 +25,7 @@
 void
 clock(void *arg)
 {
-	struct lcdarg *a = arg;
+	struct clockarg *a = arg;
 	uint8_t d, h, m, s;
 
 	d = h = m = s = 0;
@@ -47,8 +47,8 @@ clock(void *arg)
 			d += 1;
 		}
 
-		sprintf(a->first, "%8lx", now());
-		sprintf(a->second, "%4d:%.2d:%.2d:%.2d", d, h, m, s);
+		sprintf(a->lcd->first, "%8lx%8x", now(), a->adc->value[0]);
+		sprintf(a->lcd->second, "%4d:%.2d:%.2d:%.2d", d, h, m, s);
 
 		update(SEC(1), MSEC(500));
 	}
