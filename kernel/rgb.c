@@ -30,24 +30,26 @@ rgb(void *arg)
 	uint16_t i = 0;
 	uint8_t r, g, b, v;
 
+#define SCALE	1
+
 	cli();
-	a->m = 255 >> 4;
+	a->m = 255 >> SCALE;
 	sei();
 
-	update(0, MSEC(500));
+	update(0, MSEC(50));
 
 	for (;;) {
 		i = (i + 1) % 360;
-		hsv(&r, &g, &b, i, 255, v);
+		hsv(&r, &g, &b, i, v, v);
 
 		cli();
-		a->r = r >> 4;
-		a->g = g >> 4;
-		a->b = b >> 4;
-		v = *a->v >> 2;
+		a->r = r >> SCALE;
+		a->g = g >> SCALE;
+		a->b = b >> SCALE;
+		v = *a->v >> 2;		/* 10bit to 8bit */
 		sei();
 
-		update(MSEC(500), MSEC(500));
+		update(MSEC(40), MSEC(50));
 	}
 }
 
@@ -60,7 +62,7 @@ pwm(void *arg)
 	DDRB |= _BV(a->pin);
 	PORTB &= ~_BV(a->pin);
 
-#define DL	MSEC(1)
+#define DL	SEC4(5)
 
 	cli();
 	maxval = *a->mval;
@@ -74,13 +76,13 @@ pwm(void *arg)
 
 		if (on) {
 			PORTB |= _BV(a->pin);
-			update(MSEC(on), DL);
+			update(SEC4(on), DL);
 		}
 
 		off = maxval - on;
 		if (off) {
 			PORTB &= ~_BV(a->pin);
-			update(MSEC(off), DL);
+			update(SEC4(off), DL);
 		}
 	}
 }

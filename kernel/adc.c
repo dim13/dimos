@@ -43,6 +43,6 @@ adc(void *arg)
 			ADCSRA |= _BV(ADSC);
 			i = (i + 1) % ADCCHANNELS;
 		}
-		update(MSEC(40), DL);
+		update(MSEC(500 / ADCCHANNELS), DL);
 	}
 }
