@@ -26,15 +26,15 @@ ctrl(void *arg)
 {
 	struct ctrlarg *a = arg;
 
-	update(0, MSEC(500));
+	update(now(), MSEC(500));
 
 	for (;;) {
-		sprintf(a->lcd->first, "the time is now:");
+		sprintf(a->lcd->first, "%8lx", now());
 		sprintf(a->lcd->second, "%4d:%.2d:%.2d:%.2d",
 			a->clock->d,
 			a->clock->h,
 			a->clock->m,
 			a->clock->s);
-		sleep(SOFT, MSEC(500));
+		update(MSEC(500), MSEC(750));
 	}
 }

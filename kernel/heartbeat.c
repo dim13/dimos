@@ -20,7 +20,7 @@
 #include "kernel.h"
 #include "tasks.h"
 
-#define	PIN	PB0
+#define PIN	PB0
 
 void
 heartbeat(void *arg)
@@ -30,19 +30,21 @@ heartbeat(void *arg)
 	DDRB |= _BV(PIN);
 	PORTB &= ~_BV(PIN);
 
-	update(0, MSEC(750));
+#define DL	MSEC(5)
+
+	update(now(), DL);
 
 	for (;;) {
 		PORTB |= _BV(PIN);
-		sleep(SOFT, MSEC(100));
+		update(MSEC(100), DL);
 
 		PORTB &= ~_BV(PIN);
-		sleep(SOFT, MSEC(50));
+		update(MSEC(50), DL);
 
 		PORTB |= _BV(PIN);
-		sleep(SOFT, MSEC(100));
+		update(MSEC(100), DL);
 
 		PORTB &= ~_BV(PIN);
-		sleep(SOFT, MSEC(500));
+		update(MSEC(500), DL);
 	}
 }

@@ -19,10 +19,7 @@
 
 #include <inttypes.h>
 #include <avr/io.h>
-#ifdef USE_DELAY
-#warning "using dalay routines"
 #include <util/delay.h>
-#endif
 #include "kernel.h"
 #include "tasks.h"
 
@@ -39,10 +36,10 @@
 #define BLINK			_BV(0)
 
 #define CURSOR_OR_DISPLAY_SHIFT	_BV(4)
-#define SHIFT_CURS_LEFT		(0x00 << 2)
-#define SHIFT_CURS_RIGHT	(0x01 << 2)
-#define SHIFT_DISP_LEFT		(0x10 << 2)
-#define SHIFT_DISP_RIGHT	(0x11 << 2)
+#define SHIFT_CURS_LEFT		0
+#define SHIFT_CURS_RIGHT	_BV(2)
+#define SHIFT_DISP_LEFT		_BV(3)
+#define SHIFT_DISP_RIGHT	(_BV(2) | _BV(3))
 
 #define FUNCTION_SET		_BV(5)
 #define DATA_LENGTH_8BIT	_BV(4)	/* on 8 / off 4 bit */
@@ -54,20 +51,15 @@
 #define SET_DDRAM_ADDRESS	_BV(7)
 #define BUSY_FLAG		_BV(7)
 
-/* 3-wire interface with 74HC164 */
+/* 3-wire interface to HD44780 throuth 74HC164 */
 #define PORT			PORTD
 #define PORTDIR			DDRD
-#define	DATA			PD5
-#define	CLOCK			PD6
-#define	E			PD7
+#define DATA			PD5
+#define CLOCK			PD6
+#define E			PD7
 
-#ifdef USE_DELAY
 #define write_cmd(x, delay)	do { write_byte((x), 0); _delay_us(delay); } while (0)
 #define write_data(x)		do { write_byte((x), 1); _delay_us(43); } while (0)
-#else
-#define write_cmd(x, delay)	do { write_byte((x), 0); sleep(SOFT, USEC(delay)); } while (0)
-#define write_data(x)		do { write_byte((x), 1); sleep(SOFT, USEC(43)); } while (0)
-#endif
 #define move(line, row)		do { write_cmd(SET_DDRAM_ADDRESS | ((line) << 6) | (row), 39); } while (0)
 #define clear()			do { write_cmd(CLEAR_DISPLAY, 1530); } while (0)
 #define home()			do { write_cmd(RETURN_HOME, 1530); } while (0)
@@ -84,7 +76,7 @@ write_byte(uint8_t byte, uint8_t rs)
 	uint8_t i;
 
 	for (i = 0; i < 8; i++) {
-		setif(byte & (0b10000000 >> i), PORT, DATA);	/* MSF */
+		setif(byte & (0x80 >> i), PORT, DATA);	/* MSF */
 		strobe(PORT, CLOCK);
 	}
 	setif(rs, PORT, DATA);
@@ -106,66 +98,6 @@ mvputch(uint8_t line, uint8_t row, char ch)
 	write_data(ch);
 }
 
-#if 0
-static char *
-itoa(int32_t n)
-{
-	static char buf[12];
-	char *s = &buf[11];
-	uint32_t sign, u = n;
-
-	*s = '\0';
-
-	if ((sign = (n < 0)))
-		u = ~u + 1;
-
-	do
-		*--s = '0' + (u % 10);
-	while ((u /= 10) > 0);
-
-	if (sign)
-		*--s = '-';
-
-	while (s != buf)
-		*--s = ' ';
-
-	return s;
-}
-
-static char hex[] = "0123456789ABCDEF";
-
-static char *
-itohex16(uint16_t x)
-{
-	static char buf[5];
-	char *s = &buf[4];
-	uint8_t i;
-
-	*s = '\0';
-
-	for (i = 0; i < 16; i += 4)
-		*--s = hex[(x >> i) & 0x0f];
-
-	return s;
-}
-
-
-static char *
-itohex32(uint32_t x)
-{
-	static char buf[9];
-	char *s = &buf[8];
-	uint8_t i;
-
-	*s = '\0';
-
-	for (i = 0; i < 32; i += 4)
-		*--s = hex[(x >> i) & 0x0f];
-
-	return s;
-}
-#endif
-
 void
 lcd(void *arg)
 {
@@ -174,7 +106,7 @@ lcd(void *arg)
 	PORTDIR |= (_BV(DATA) | _BV(CLOCK) | _BV(E));
 
 	/* task init: wait >40ms */
-	update(MSEC(40), MSEC(500));
+	update(now() + MSEC(40), MSEC(500));
 
 	/* 8 bit, 2 line, 5x8 font */
 	write_cmd(FUNCTION_SET | DATA_LENGTH_8BIT | TWO_LINES, 39);
@@ -197,6 +129,6 @@ lcd(void *arg)
 	for (;;) {
 		mvputs(0, 0, a->first);
 		mvputs(1, 0, a->second);
-		sleep(SOFT, MSEC(40));	/* 25 Hz */
+		update(MSEC(40), MSEC(40));	/* 25Hz */
 	}
 }

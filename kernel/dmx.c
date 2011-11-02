@@ -20,17 +20,15 @@
 #include "kernel.h"
 #include "tasks.h"
 
-/* globals */
-uint8_t	red, green, blue;
-struct rgbarg rgbargs = { &red, &green, &blue };
+struct rgbarg rgbargs;
+
 struct pwmarg pwmargs[] = {
-	{ &red, PB2 },
-	{ &green, PB3 },
-	{ &blue, PB4 }
+	{ &rgbargs.r, PB2, &rgbargs.m },
+	{ &rgbargs.g, PB3, &rgbargs.m },
+	{ &rgbargs.b, PB4, &rgbargs.m }
 };
+
 struct lcdarg lcdarg;
-struct clockarg clockarg;
-struct ctrlarg ctrlarg = { &lcdarg, &clockarg };
 
 int
 main()
@@ -38,26 +36,26 @@ main()
 	init(STACK);
 	init_uart();
 
-	semaphore(0, 1);
-
-	exec(heartbeat, STACK, 0);	// 48
+#if 1
+	exec(heartbeat, STACK, 0);	/* stack 48 */
+#endif
 
 #if 1
 	exec(rgb, STACK + 16, &rgbargs);
 	exec(pwm, STACK, &pwmargs[0]);
 	exec(pwm, STACK, &pwmargs[1]);
 	exec(pwm, STACK, &pwmargs[2]);
+#endif
+
 #if 0
 	exec(cmd, STACK, &rgbargs);
 #endif
+
 #if 1
 	exec(lcd, STACK, &lcdarg);
-	exec(clock, STACK, &clockarg);
-	exec(ctrl, STACK + 8, &ctrlarg);
+	exec(clock, STACK, &lcdarg);
 #endif
-#endif
-
-	for (;;);	/* idle task */
+	idle();
 
 	return 0;
 }
