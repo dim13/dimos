@@ -1,6 +1,7 @@
 # $Id$
 
 PROG=		firmware
+NOMAN=
 
 MCU_TARGET=	atmega8
 F_CPU=		16000000
