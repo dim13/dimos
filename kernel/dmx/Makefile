@@ -8,7 +8,6 @@ PRESCALE=	8	# res 0.5usec	cycle 32.7msec
 #PRESCALE=	64	# res 4usec	cycle 262msec
 #PRESCALE=	256	# res 16msec	cycle 1 sec
 #PRESCALE=	1024	# res 64msec	cycle 4 sec
-#STACK=		48
 STACK=		64
 TASKS=		8
 SEMAPHORES=	4
