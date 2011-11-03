@@ -26,7 +26,7 @@ LDFLAGS=	-mmcu=${MCU_TARGET} \
 all: ${PROG} ${PROG}.lst ${PROG}.hex ${PROG}.ehex size
 
 size: ${PROG}
-	${SIZE} -C --mcu=${MCU} ${.ALLSRC}
+	${SIZE} -C --mcu=${MCU_TARGET} ${.ALLSRC}
 
 clean:
 	rm -f *.o ${PROG} *.bak *.lst *.map *.hex *.bin *srec *.ehex *.ebin *.esrec
