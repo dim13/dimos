@@ -17,7 +17,8 @@ SIZE=		avr-size
 
 CFLAGS=		-Wall -Os -mmcu=${MCU_TARGET} \
 		-DF_CPU=${F_CPU} -DPRESCALE=${PRESCALE} -DBAUD=${BAUD}
-LDFLAGS=	-Wl,-Map,${PROG}.map,--section-start=.text=${ORG}
+LDFLAGS=	-mmcu=${MCU_TARGET} \
+		-Wl,-Map,${PROG}.map,--section-start=.text=${ORG}
 
 .SUFFIXES:	.lst .hex .bin .srec .ehex .ebin .esrec
 
