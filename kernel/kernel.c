@@ -88,6 +88,15 @@ ISR(TIMER1_COMPA_vect, ISR_NAKED)
 		}
 	}
 
+#define LOAD 0
+
+#if LOAD
+	if (rtr != kernel.task)
+		PORTB |= _BV(PB1);
+	else
+		PORTB &= ~_BV(PB1);
+#endif
+
 	/* switch task */
 	kernel.running->sp = SP;
 	SP = rtr->sp;
@@ -109,6 +118,10 @@ init(uint8_t stack)
 	TCCR1A = 0;				/* normal operation */
 	TCCR1B = TIMER_FLAGS;			/* prescale */
 	TIMSK = (_BV(OCIE1A) | _BV(TOIE1));	/* enable interrupts */
+
+#if LOAD
+	DDRB |= _BV(PB1);	/* XXX */
+#endif
 
 	kernel.cycles = 0;
 	kernel.freemem = (void *)(RAMEND - stack);
