@@ -42,7 +42,7 @@ main()
 	init_uart();
 
 #if 1
-	exec(heartbeat, STACK, 0);	/* stack 48 */
+	exec(heartbeat, STACK, 0);
 #endif
 
 #if 1
@@ -50,13 +50,6 @@ main()
 	exec(pwm, STACK, &pwmargs[0]);
 	exec(pwm, STACK, &pwmargs[1]);
 	exec(pwm, STACK, &pwmargs[2]);
-#endif
-
-#if 0
-	exec(cmd, STACK, &rgbargs);
-#endif
-
-#if 1
 	exec(adc, STACK, &adcarg);
 #endif
 
@@ -64,6 +57,11 @@ main()
 	exec(lcd, STACK, &lcdarg);
 	exec(clock, STACK, &clockarg);
 #endif
+
+#if 0
+	exec(cmd, STACK, &rgbargs);
+#endif
+
 	IDLE();
 
 	return 0;
