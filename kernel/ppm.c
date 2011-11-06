@@ -17,80 +17,52 @@
 
 #include <inttypes.h>
 #include <avr/io.h>
+#include <avr/interrupt.h>
 #include "kernel.h"
 #include "tasks.h"
 
-#define	ON	PORTB |= _BV(PB1)
-#define	OFF	PORTB &= ~_BV(PB1)
-
-#if 0
-uint32_t buffer[ADCCHANNELS];
+#define	ON	do { PORTB |=  _BV(PB1); } while (0)
+#define	OFF	do { PORTB &= ~_BV(PB1); } while (0)
+#define ADCMAX	(UINT16_MAX >> 6)	/* 10 bit */
+#define DL	SEC4(1)
+#define DELIM	SEC4(3)			/* 0.3ms */
+#define FRAME	SEC2(2)			/* 20ms */
+#define SIGMIN	SEC4(7)			/* 0.7ms */
 
 void
 ppm(void *arg)
 {
 	struct ppmarg *a = (struct ppmarg *)arg;
-	uint32_t r = release();
-	uint32_t d = deadline();
-	uint32_t t;
+	uint32_t t, n;
 	uint8_t i;
 
 	DDRB |= _BV(DDB1);
-	PORTB &= ~_BV(PB1);	/* high is low */
+	ON;
 	
 	/* frame length 20ms, channel 0.7-1.7ms, stop 0.3 ms */
-
 	for (;;) {
-		/* start frame 0.3ms low */
-		ON;
-		r = d += USEC(300);
-		update(r, d);
-
-		wait(0);
-		for (i = 0, t = 0; i < ADCCHANNELS; i++) {
-			buffer[i] = a->value[i];
-			t += buffer[i];
-		}
-		signal(0);
-
-		/* sync frame */
-		OFF;
-		r = d += MSEC(20) - MSEC(t) / 0x3ff - MSEC(ADCCHANNELS) - USEC(300);
-		update(r, d);
+		t = FRAME;
 
 		for (i = 0; i < ADCCHANNELS; i++) {
-			/* start frame 0.3ms low */
-			ON;
-			r = d += USEC(300);
-			update(r, d);
+			n = SIGMIN + SEC3(a->value[i]) / ADCMAX;
 
 			/* channel frame 0.7..1.7ms high */
 			OFF;
-			r = d += USEC(700) + MSEC(buffer[i]) / 0x3ff;
-			update(r, d);
+			update(n, DL);
+
+			/* start frame 0.3ms low */
+			ON;
+			update(DELIM, DL);
+			t -= n + DELIM;
 		}
 
+		t -= DELIM;
+
+		/* sync frame */
+		OFF;
+		update(t, DL);
+
+		ON;
+		update(DELIM, DL);
 	}
 }
-#else
-void
-ppm(void *arg)
-{
-	struct ppmarg *a = (struct ppmarg *)arg;
-	uint32_t t;
-
-	DDRB |= _BV(DDB1);
-	PORTB &= ~_BV(PB1);
-
-	for (;;) {
-		wait(0);
-		t = MSEC(1) + MSEC(a->value[0]) / 0x3ff;
-		signal(0);
-
-		period(MSEC(20));
-		PORTB ^= _BV(PB1);
-		snooze(t);
-		PORTB ^= _BV(PB1);
-	}
-}
-#endif
