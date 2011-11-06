@@ -28,7 +28,7 @@ rgb(void *arg)
 {
 	struct rgbarg *a = (struct rgbarg *)arg;
 	uint16_t i = 0;
-	uint8_t r, g, b, v;
+	uint8_t r, g, b, v = 255;
 
 #define SCALE	1
 
