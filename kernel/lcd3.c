@@ -19,6 +19,7 @@
 
 #include <stdint.h>
 #include <avr/io.h>
+#include <avr/cpufunc.h>
 #include <util/delay.h>
 #include "kernel.h"
 #include "tasks.h"
@@ -66,7 +67,7 @@
 
 
 /* recomended cycle 1us: 450ns on, 450ns off. this is beyond our resolution */
-#define wait_short()		do { asm volatile ("nop"); } while (0)
+#define wait_short()		do { _NOP(); } while (0)
 #define strobe(port, bit)	do { port |= _BV(bit); wait_short(); port &= ~_BV(bit); } while (0)
 #define setif(cond, port, bit)	do { if (cond) port |= _BV(bit); else port &= ~_BV(bit); } while (0)
 

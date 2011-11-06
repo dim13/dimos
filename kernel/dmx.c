@@ -17,6 +17,7 @@
 
 #include <stdint.h>
 #include <avr/io.h>
+#include <avr/cpufunc.h>
 #include "kernel.h"
 #include "tasks.h"
 
@@ -46,7 +47,7 @@ main()
 #endif
 
 #if 1
-	exec(rgb, STACK, &rgbargs);
+	exec(rgb, STACK + 16, &rgbargs);
 	exec(pwm, STACK, &pwmargs[0]);
 	exec(pwm, STACK, &pwmargs[1]);
 	exec(pwm, STACK, &pwmargs[2]);
@@ -62,7 +63,8 @@ main()
 	exec(cmd, STACK, &rgbargs);
 #endif
 
-	IDLE();
+	for (;;)
+		_NOP();
 
 	return 0;
 }

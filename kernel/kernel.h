@@ -89,8 +89,6 @@
 #define SEC1(T)	((uint32_t)(T) * ((F_CPU / 10) / PRESCALE))
 #define SEC0(T)	((uint32_t)(T) * ((F_CPU / 1) / PRESCALE))
 
-#define IDLE()	do { asm volatile ("nop"); } while (1)
-
 /* __BEGIN_DECLS */
 
 void init(uint8_t stack);
@@ -103,9 +101,6 @@ void suspend(void);
 
 void set(uint32_t release, uint32_t deadline);
 void update(uint32_t release, uint32_t deadline);
-enum Sleep { SOFT, HARD };
-enum Critical { ON, OFF };
-void sleep(enum Sleep, uint32_t);
 
 uint32_t now(void);
 uint32_t release(void);
