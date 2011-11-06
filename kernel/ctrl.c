@@ -15,7 +15,7 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#include <inttypes.h>
+#include <stdint.h>
 #include <avr/io.h>
 #include <stdio.h>
 #include "kernel.h"

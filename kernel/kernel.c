@@ -19,7 +19,7 @@
  * http://www.control.lth.se/Publication/hen+04t.html
  */
 
-#include <inttypes.h>
+#include <stdint.h>
 #include <string.h>
 #include <avr/io.h>
 #include <avr/interrupt.h>

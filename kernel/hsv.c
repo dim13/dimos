@@ -1,7 +1,7 @@
 /* $Id$ */
 /* public domain */
 
-#include <inttypes.h>
+#include <stdint.h>
 
 void
 hsv(uint8_t *r, uint8_t *g, uint8_t *b, uint16_t h, uint8_t s, uint8_t v)
