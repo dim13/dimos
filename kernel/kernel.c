@@ -141,7 +141,6 @@ exec(void (*fun)(void *), uint8_t stack, void *args)
 {
 	struct task *t;
 	uint8_t *sp;
-	uint16_t *spw;
 
 	cli();
 
