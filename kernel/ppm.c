@@ -45,6 +45,7 @@ ppm(void *arg)
 
 		for (i = 0; i < ADCCHANNELS; i++) {
 			n = SIGMIN + SEC3(a->value[i]) / ADCMAX;
+			t -= n + DELIM;
 
 			/* channel frame 0.7..1.7ms high */
 			OFF;
@@ -53,14 +54,11 @@ ppm(void *arg)
 			/* start frame 0.3ms low */
 			ON;
 			update(DELIM, DL);
-			t -= n + DELIM;
 		}
-
-		t -= DELIM;
 
 		/* sync frame */
 		OFF;
-		update(t, DL);
+		update(t - DELIM, DL);
 
 		ON;
 		update(DELIM, DL);
