@@ -20,6 +20,7 @@
  */
 
 #include <inttypes.h>
+#include <string.h>
 #include <avr/io.h>
 #include <avr/interrupt.h>
 #include "kernel.h"
@@ -140,7 +141,7 @@ exec(void (*fun)(void *), uint8_t stack, void *args)
 {
 	struct task *t;
 	uint8_t *sp;
-	uint8_t i;
+	uint16_t *spw;
 
 	cli();
 
@@ -151,14 +152,14 @@ exec(void (*fun)(void *), uint8_t stack, void *args)
 	*sp-- = LO8(fun);		/* PC(lo) */
 	*sp-- = HI8(fun);		/* PC(hi) */
 
-	for (i = 0; i < 25; i++)	/* r1, r0, SREG, r2-r23 */
-		*sp-- = 0;
+	sp -= 25;
+	memset(sp, 0, 25);		/* r1, r0, SREG, r2-r23 */
 	
 	*sp-- = LO8(args);		/* r24 */
 	*sp-- = HI8(args);		/* r25 */
 
-	for (i = 0; i < 6; i++)		/* r26-r31 */
-		*sp-- = 0;
+	sp -= 6;
+	memset(sp, 0, 6);		/* r26-r31 */
 
 	t = ++kernel.last;
 
