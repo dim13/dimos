@@ -22,7 +22,7 @@
 
 #define USE_RXCIE
 
-#include <inttypes.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <avr/io.h>
 #include <avr/wdt.h>
