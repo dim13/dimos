@@ -21,20 +21,19 @@
 #include "kernel.h"
 #include "tasks.h"
 
-uint16_t adcval[ADCCHANNELS];
+struct adcarg adcarg;
 
-struct rgbarg rgbargs = { 0, 0, 0, 0, &adcval[0] };
+struct lcdarg lcdarg;
+
+struct clockarg clockarg = { &lcdarg, &adcarg };
+
+struct rgbarg rgbargs = { 0, 0, 0, 0, &adcarg.value[0] };
 
 struct pwmarg pwmargs[] = {
 	{ &rgbargs.r, PB2, &rgbargs.m },
 	{ &rgbargs.g, PB3, &rgbargs.m },
 	{ &rgbargs.b, PB4, &rgbargs.m }
 };
-
-struct adcarg adcarg = { adcval };
-
-struct lcdarg lcdarg;
-struct clockarg clockarg = { &lcdarg, &adcarg };
 
 int
 main()
