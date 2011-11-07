@@ -23,44 +23,53 @@
 
 #define	ON	do { PORTB |=  _BV(PB1); } while (0)
 #define	OFF	do { PORTB &= ~_BV(PB1); } while (0)
-#define ADCMAX	(UINT16_MAX >> 6)	/* 10 bit */
-#define DL	SEC4(1)
-#define DELIM	SEC4(3)			/* 0.3ms */
+#define	SWITCH	do { PORTB ^= _BV(PB1); } while (0)
+
+#define ADCMAX	0x3ff			/* 10 bit */
+#define DL	SEC4(1)			/* 0.1ms */
 #define FRAME	SEC2(2)			/* 20ms */
+#define DELIM	SEC4(3)			/* 0.3ms */
 #define SIGMIN	SEC4(7)			/* 0.7ms */
 
 void
 ppm(void *arg)
 {
 	struct ppmarg *a = (struct ppmarg *)arg;
-	uint32_t t, n;
+	uint32_t t, n, v;
 	uint8_t i;
 
 	DDRB |= _BV(DDB1);
-	ON;
+	OFF;
+
+	update(0, DL);
 	
 	/* frame length 20ms, channel 0.7-1.7ms, stop 0.3 ms */
 	for (;;) {
 		t = FRAME;
 
 		for (i = 0; i < ADCCHANNELS; i++) {
-			n = SIGMIN + SEC3(a->value[i]) / ADCMAX;
+			cli();
+			v = SEC3(a->value[i]);
+			sei();
+			
+			n = SIGMIN + v / ADCMAX;
 			t -= n + DELIM;
 
-			/* channel frame 0.7..1.7ms high */
-			OFF;
-			update(n, DL);
-
 			/* start frame 0.3ms low */
-			ON;
+			SWITCH;
 			update(DELIM, DL);
+
+			/* channel frame 0.7..1.7ms high */
+			SWITCH;
+			update(n, DL);
 		}
 
 		/* sync frame */
-		OFF;
-		update(t - DELIM, DL);
 
-		ON;
+		SWITCH;
 		update(DELIM, DL);
+
+		SWITCH;
+		update(t - DELIM, DL);
 	}
 }

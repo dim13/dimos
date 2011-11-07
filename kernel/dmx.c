@@ -23,6 +23,8 @@
 
 struct adcarg adcarg;
 
+struct ppmarg ppmarg = { adcarg.value };
+
 struct lcdarg lcdarg;
 
 struct clockarg clockarg = { &lcdarg, &adcarg };
@@ -50,16 +52,23 @@ main()
 	exec(pwm, STACK, &pwmargs[0]);
 	exec(pwm, STACK, &pwmargs[1]);
 	exec(pwm, STACK, &pwmargs[2]);
+#endif
+
+#if 1
 	exec(adc, STACK, &adcarg);
 #endif
 
 #if 1
 	exec(lcd, STACK, &lcdarg);
-	exec(clock, STACK, &clockarg);
+	exec(clock, STACK + 48, &clockarg);
 #endif
 
 #if 0
 	exec(cmd, STACK, &rgbargs);
+#endif
+
+#if 0
+	exec(ppm, STACK, &ppmarg);
 #endif
 
 	for (;;)

@@ -18,7 +18,7 @@
 #ifndef __TASKS_H
 #define __TASKS_H
 
-#define ADCCHANNELS 4		/* max 6 */
+#define ADCCHANNELS 6		/* max 6 */
 #define ADCPRESCALE 128		/* 50-200 kHz for max resolution */
 
 #if (ADCPRESCALE == 1)
