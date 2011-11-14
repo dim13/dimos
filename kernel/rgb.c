@@ -28,13 +28,7 @@ rgb(void *arg)
 {
 	struct rgbarg *a = (struct rgbarg *)arg;
 	uint16_t i = 0;
-	uint8_t r, g, b, v = 255;
-
-#define SCALE	1
-
-	cli();
-	a->m = 255 >> SCALE;
-	sei();
+	uint8_t r, g, b, v = 0;
 
 	update(0, MSEC(50));
 
@@ -43,9 +37,9 @@ rgb(void *arg)
 		hsv(&r, &g, &b, i, v, v);
 
 		cli();
-		a->r = r >> SCALE;
-		a->g = g >> SCALE;
-		a->b = b >> SCALE;
+		a->r = r;
+		a->g = g;
+		a->b = b;
 		v = *a->v >> 2;		/* 10bit to 8bit */
 		sei();
 
@@ -57,32 +51,30 @@ void
 pwm(void *arg)
 {
 	struct pwmarg *a = (struct pwmarg *)arg;
-	uint16_t maxval, on, off;
+	uint32_t on, off;
 
 	DDRB |= _BV(a->pin);
 	PORTB &= ~_BV(a->pin);
 
-#define DL	SEC4(5)
+#define DL	SEC3(1)
 
-	cli();
-	maxval = *a->mval;
-	sei();
 	update(0, DL);
 
 	for (;;) {
 		cli();
-		on = *a->value;
+		on = SEC0(*a->value) / UINT8_MAX;
 		sei();
 
 		if (on) {
 			PORTB |= _BV(a->pin);
-			update(SEC4(on), DL);
+			update(on, DL);
 		}
 
-		off = maxval - on;
+		off = SEC0(UINT8_MAX - on) / UINT8_MAX;
+
 		if (off) {
 			PORTB &= ~_BV(a->pin);
-			update(SEC4(off), DL);
+			update(off, DL);
 		}
 	}
 }

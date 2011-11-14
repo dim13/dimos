@@ -29,12 +29,12 @@ struct lcdarg lcdarg;
 
 struct clockarg clockarg = { &lcdarg, &adcarg };
 
-struct rgbarg rgbargs = { 0, 0, 0, 0, &adcarg.value[0] };
+struct rgbarg rgbargs = { 0, 0, 0, &adcarg.value[0] };
 
 struct pwmarg pwmargs[] = {
-	{ &rgbargs.r, PB2, &rgbargs.m },
-	{ &rgbargs.g, PB3, &rgbargs.m },
-	{ &rgbargs.b, PB4, &rgbargs.m }
+	{ &rgbargs.r, PB2 },
+	{ &rgbargs.g, PB3 },
+	{ &rgbargs.b, PB4 }
 };
 
 int
