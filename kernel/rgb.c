@@ -52,6 +52,7 @@ pwm(void *arg)
 {
 	struct pwmarg *a = (struct pwmarg *)arg;
 	uint32_t on, off;
+	uint8_t v;
 
 	DDRB |= _BV(a->pin);
 	PORTB &= ~_BV(a->pin);
@@ -62,17 +63,15 @@ pwm(void *arg)
 
 	for (;;) {
 		cli();
-		on = SEC0(*a->value) / UINT8_MAX;
+		v = *a->value;
 		sei();
 
-		if (on) {
+		if ((on = SEC2(v) / UINT8_MAX)) {
 			PORTB |= _BV(a->pin);
 			update(on, DL);
 		}
 
-		off = SEC0(UINT8_MAX - on) / UINT8_MAX;
-
-		if (off) {
+		if ((off = SEC2(UINT8_MAX - v) / UINT8_MAX)) {
 			PORTB &= ~_BV(a->pin);
 			update(off, DL);
 		}
