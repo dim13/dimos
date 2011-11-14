@@ -57,9 +57,9 @@ pwm(void *arg)
 	DDRB |= _BV(a->pin);
 	PORTB &= ~_BV(a->pin);
 
-#define DL	SEC3(1)
+#define DL	SEC4(1)
 
-	update(0, DL);
+	update(now(), DL);
 
 	for (;;) {
 		cli();
