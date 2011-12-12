@@ -222,11 +222,19 @@ signal(uint8_t sema)
 void
 set(uint32_t release, uint32_t deadline)
 {
+	struct task *t;
+	uint32_t now;
+
 	cli();
 
-	kernel.running->state = TIMEQ;
-	kernel.running->release = release;
-	kernel.running->deadline = deadline;
+	now = NOW(kernel.cycles, TCNT1);
+	t = kernel.running;
+#if SLACK
+	t->slack = DISTANCE(now, t->deadline);
+#endif
+	t->state = TIMEQ;
+	t->release = release;
+	t->deadline = deadline;
 
 	SCHEDULE();
 }
@@ -236,6 +244,7 @@ update(uint32_t release, uint32_t deadline)
 {
 	struct task *t;
 	uint32_t now;
+
 	cli();
 
 	now = NOW(kernel.cycles, TCNT1);
