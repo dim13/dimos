@@ -77,8 +77,11 @@ ISR(TIMER1_COMPA_vect, ISR_NAKED)
 	kernel.task->deadline = nexthit;
 
 	rtr = kernel.task;
+	t = kernel.running;
+	do {
+		if (++t > kernel.last)
+			t = kernel.task;
 
-	for (t = &kernel.task[1]; t <= kernel.last; t++) {
 		/* release tasks from time-wait-queue */
 		if (t->state == TIMEQ) {
 			if (DISTANCE(t->release, now) > 0)
@@ -96,7 +99,7 @@ ISR(TIMER1_COMPA_vect, ISR_NAKED)
 #endif
 				rtr = t;
 		}
-	}
+	} while (t != kernel.running);
 
 	/* switch task */
 	kernel.running->sp = SP;
