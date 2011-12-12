@@ -163,6 +163,7 @@ exec(void (*fun)(void *), uint8_t stack, void *args)
 
 	t->release = 0;
 	t->deadline = EPOCH;
+	t->slack = 0;
 	t->state = TIMEQ;
 
 	t->sp = (uint16_t)sp;		/* SP */
