@@ -234,11 +234,13 @@ void
 update(uint32_t release, uint32_t deadline)
 {
 	struct task *t;
+	uint32_t now;
 	cli();
 
+	now = NOW(kernel.cycles, TCNT1);
 	t = kernel.running;
 #if SLACK
-	t->slack = NOW(kernel.cycles, TCNT1) - t->deadline;
+	t->slack = DISTANCE(now, t->deadline);
 #endif
 	t->state = TIMEQ;
 	t->release += release;
