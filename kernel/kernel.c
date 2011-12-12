@@ -26,6 +26,8 @@
 #include "kernel.h"
 #include "stack.h"
 
+#define SLACK	1
+
 enum State { TERMINATED, RUNQ, TIMEQ, WAITQOFFSET };
 
 #define LO8(x)			((uint8_t)((uint16_t)(x)))
@@ -38,6 +40,9 @@ enum State { TERMINATED, RUNQ, TIMEQ, WAITQOFFSET };
 struct task {
 	uint32_t release;
 	uint32_t deadline;
+#if SLACK
+	int32_t slack;
+#endif
 	uint16_t sp;		/* stack pointer */
 	uint8_t state;
 };
@@ -84,7 +89,11 @@ ISR(TIMER1_COMPA_vect, ISR_NAKED)
 
 		/* find next task to run */
 		if (t->state == RUNQ) {
+#if SLACK
+			if (t->slack < rtr->slack)
+#else
 			if (DISTANCE(t->deadline, rtr->deadline) > 0)
+#endif
 				rtr = t;
 		}
 	}
@@ -118,6 +127,9 @@ init(uint8_t stack)
 
 	/* Initialize idle task (task 0) */
 	kernel.running->deadline = EPOCH;
+#if SLACK
+	kernel.running->slack = EPOCH;
+#endif
 	kernel.running->state = RUNQ;
 
 	sei();
@@ -221,11 +233,16 @@ set(uint32_t release, uint32_t deadline)
 void
 update(uint32_t release, uint32_t deadline)
 {
+	struct task *t;
 	cli();
 
-	kernel.running->state = TIMEQ;
-	kernel.running->release += release;
-	kernel.running->deadline = kernel.running->release + deadline;
+	t = kernel.running;
+#if SLACK
+	t->slack = NOW(kernel.cycles, TCNT1) - t->deadline;
+#endif
+	t->state = TIMEQ;
+	t->release += release;
+	t->deadline = t->release + deadline;
 
 	SCHEDULE();
 }
