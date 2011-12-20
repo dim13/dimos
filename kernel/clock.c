@@ -30,8 +30,6 @@ clock(void *arg)
 
 	d = h = m = s = 0;
 
-	update(0, SEC(500));
-
 	for (;;) {
 		s += 1;
 		if (s == 60) {
@@ -50,6 +48,6 @@ clock(void *arg)
 		sprintf(a->lcd->first, "%8lx%8x", now(), a->adc->value[0]);
 		sprintf(a->lcd->second, "%4d:%.2d:%.2d:%.2d", d, h, m, s);
 
-		update(SEC(1), MSEC(500));
+		sleep(SEC(1));
 	}
 }

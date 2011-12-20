@@ -30,20 +30,18 @@ rgb(void *arg)
 	uint16_t i = 0;
 	uint8_t r, g, b, v = 0;
 
-	update(0, MSEC(50));
-
 	for (;;) {
 		i = (i + 1) % 360;
 		hsv(&r, &g, &b, i, v, v);
 
-		cli();
+		//cli();
 		a->r = r;
 		a->g = g;
 		a->b = b;
 		v = *a->v >> 2;		/* 10bit to 8bit */
-		sei();
+		//sei();
 
-		update(MSEC(40), MSEC(50));
+		sleep(MSEC(40));
 	}
 }
 
@@ -57,23 +55,19 @@ pwm(void *arg)
 	DDRB |= _BV(a->pin);
 	PORTB &= ~_BV(a->pin);
 
-#define DL	SEC4(1)
-
-	update(now(), DL);
-
 	for (;;) {
-		cli();
+		//cli();
 		v = *a->value;
-		sei();
+		//sei();
 
 		if ((on = SEC2(v) / UINT8_MAX)) {
 			PORTB |= _BV(a->pin);
-			update(on, DL);
+			sleep(on);
 		}
 
 		if ((off = SEC2(UINT8_MAX - v) / UINT8_MAX)) {
 			PORTB &= ~_BV(a->pin);
-			update(off, DL);
+			sleep(off);
 		}
 	}
 }

@@ -89,22 +89,20 @@
 #define SEC1(T)	((uint32_t)(T) * ((F_CPU / 10) / PRESCALE))
 #define SEC0(T)	((uint32_t)(T) * ((F_CPU / 1) / PRESCALE))
 
+enum Prio { LOW, HIGH };
+
 /* __BEGIN_DECLS */
 
 void init(uint8_t stack);
-void exec(void (*fun)(void *), uint8_t stack, void *args);
+void exec(void (*fun)(void *), uint8_t stack, void *args, uint8_t prio);
 void semaphore(uint8_t semnbr, uint8_t initVal);
 
 void wait(uint8_t semnbr);
 void signal(uint8_t semnbr);
 void suspend(void);
-
-void set(uint32_t release, uint32_t deadline);
-void update(uint32_t release, uint32_t deadline);
+void sleep(uint32_t ticks);
 
 uint32_t now(void);
-uint32_t release(void);
-uint32_t deadline(void);
 uint8_t running(void);
 
 /* __END_DECLS */

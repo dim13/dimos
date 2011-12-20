@@ -59,17 +59,47 @@
 #define CLOCK			PD6
 #define E			PD7
 
-#define write_cmd(x, delay)	do { write_byte((x), 0); _delay_us(delay); } while (0)
-#define write_data(x)		do { write_byte((x), 1); _delay_us(43); } while (0)
-#define move(line, row)		do { write_cmd(SET_DDRAM_ADDRESS | ((line) << 6) | (row), 39); } while (0)
-#define clear()			do { write_cmd(CLEAR_DISPLAY, 1530); } while (0)
-#define home()			do { write_cmd(RETURN_HOME, 1530); } while (0)
+#define write_cmd(x, delay)	do {					\
+	write_byte((x), 0);						\
+	_delay_us(delay);						\
+} while (0)
+
+#define write_data(x)		do {					\
+	write_byte((x), 1);						\
+	_delay_us(43);							\
+} while (0)
+
+#define move(line, row)		do {					\
+	write_cmd(SET_DDRAM_ADDRESS | ((line) << 6) | (row), 39);	\
+} while (0)
+
+#define clear()			do {					\
+	write_cmd(CLEAR_DISPLAY, 1530);					\
+} while (0)
+
+#define home()			do {					\
+	write_cmd(RETURN_HOME, 1530);					\
+} while (0)
 
 
-/* recomended cycle 1us: 450ns on, 450ns off. this is beyond our resolution */
-#define wait_short()		do { _NOP(); } while (0)
-#define strobe(port, bit)	do { port |= _BV(bit); wait_short(); port &= ~_BV(bit); } while (0)
-#define setif(cond, port, bit)	do { if (cond) port |= _BV(bit); else port &= ~_BV(bit); } while (0)
+/* recomended cycle 1us: 450ns on, 450ns off.
+ * this is beyond our resolution */
+#define wait_short()		do {					\
+	_NOP();								\
+} while (0)
+
+#define strobe(port, bit)	do {					\
+	port |= _BV(bit);						\
+	wait_short();							\
+	port &= ~_BV(bit);						\
+} while (0)
+
+#define setif(cond, port, bit)	do {					\
+	if (cond)							\
+		port |= _BV(bit);					\
+	else								\
+		port &= ~_BV(bit);					\
+} while (0)
 
 static void
 write_byte(uint8_t byte, uint8_t rs)
@@ -107,7 +137,7 @@ lcd(void *arg)
 	PORTDIR |= (_BV(DATA) | _BV(CLOCK) | _BV(E));
 
 	/* task init: wait >40ms */
-	update(MSEC(40), MSEC(500));
+	sleep(MSEC(40));
 
 	/* 8 bit, 2 line, 5x8 font */
 	write_cmd(FUNCTION_SET | DATA_LENGTH_8BIT | TWO_LINES, 39);
@@ -130,6 +160,6 @@ lcd(void *arg)
 	for (;;) {
 		mvputs(0, 0, a->first);
 		mvputs(1, 0, a->second);
-		update(MSEC(40), MSEC(40));	/* 25Hz */
+		sleep(MSEC(40));
 	}
 }

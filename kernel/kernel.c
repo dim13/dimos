@@ -25,10 +25,9 @@
 #include <avr/interrupt.h>
 #include "kernel.h"
 #include "stack.h"
+#include "queue.h"
 
-#define SLACK	1
-
-enum State { TERMINATED, RUNQ, TIMEQ, WAITQOFFSET };
+enum State { TERMINATED, RUNQ, TIMEQ, WAITQ };
 
 #define LO8(x)			((uint8_t)((uint16_t)(x)))
 #define HI8(x)			((uint8_t)((uint16_t)(x) >> 8))
@@ -39,18 +38,18 @@ enum State { TERMINATED, RUNQ, TIMEQ, WAITQOFFSET };
 
 struct task {
 	uint32_t release;
-	uint32_t deadline;
-#if SLACK
-	int32_t slack;
-#endif
 	uint16_t sp;		/* stack pointer */
+	uint32_t time;		/* stack pointer */
 	uint8_t state;
+	uint8_t prio;
+	SIMPLEQ_ENTRY(task) link;
 };
 
 struct kernel {
-	struct task *running;
-	struct task *last;
+	SIMPLEQ_HEAD(, task) runq;
+	struct task *last;	/* last allocated task */
 	struct task task[TASKS + 1];
+	uint32_t lasthit;
 	uint16_t cycles;
 	uint8_t *freemem;
 	uint8_t semaphore[SEMAPHORES];
@@ -63,51 +62,54 @@ ISR(TIMER1_OVF_vect)
 
 ISR(TIMER1_COMPA_vect, ISR_NAKED)
 {
-	struct task *t;
-	struct task *rtr;
+	struct task *tp;
+	int32_t dist;
 	uint32_t now;
-	uint32_t nexthit;
+	uint16_t nexthit;
 
+	/* save context */
 	PUSH_ALL();
 
 	now = NOW(kernel.cycles, TCNT1);
-	nexthit = EPOCH + now;
 
-	/* update idle task */
-	kernel.task->deadline = nexthit;
+	PORTB ^= _BV(PB1);		/* DEBUG */
 
-	rtr = kernel.task;
-	t = kernel.running;
-	do {
-		if (++t > kernel.last)
-			t = kernel.task;
+	/* save stack pointer */
+	tp = SIMPLEQ_FIRST(&kernel.runq);
+	tp->sp = SP;
+	tp->state = TIMEQ;
+	tp->time += DISTANCE(kernel.lasthit, now);
+	/* drop current task from run-queue */
+	SIMPLEQ_REMOVE_HEAD(&kernel.runq, link);
 
-		/* release tasks from time-wait-queue */
-		if (t->state == TIMEQ) {
-			if (DISTANCE(t->release, now) > 0)
-				t->state = RUNQ;
-			else if (DISTANCE(t->release, nexthit) > 0)
-				nexthit = t->release;
-		}
+	kernel.lasthit = now;
+	nexthit = 0xffff;
 
-		/* find next task to run */
-		if (t->state == RUNQ) {
-#if SLACK
-			if (t->slack < rtr->slack)
-#else
-			if (DISTANCE(t->deadline, rtr->deadline) > 0)
-#endif
-				rtr = t;
-		}
-	} while (t != kernel.running);
+	/* walk through tasks and assemble run-queue */
+	for (tp = &kernel.task[1]; tp <= kernel.last; tp++) {
+		if (tp->state != TIMEQ)
+			continue;
+		dist = DISTANCE(now, tp->release);
+		if (dist <= 0) {
+			tp->state = RUNQ;
+			if (tp->prio == HIGH)
+				SIMPLEQ_INSERT_HEAD(&kernel.runq, tp, link);
+			else
+				SIMPLEQ_INSERT_TAIL(&kernel.runq, tp, link);
+		} else if (dist < nexthit)
+			nexthit = dist;
+	}
 
-	/* switch task */
-	kernel.running->sp = SP;
-	SP = rtr->sp;
-	kernel.running = rtr;
+	/* idle if empty */
+	if (SIMPLEQ_EMPTY(&kernel.runq))
+		SIMPLEQ_INSERT_HEAD(&kernel.runq, &kernel.task[0], link);
 
-	OCR1A = (uint16_t)nexthit;
-	
+	/* restore stack pointer */
+	SP = SIMPLEQ_FIRST(&kernel.runq)->sp;
+
+	OCR1A = (uint16_t)(now + nexthit);
+
+	/* restore context */
 	POP_ALL();
 	reti();
 }
@@ -122,24 +124,27 @@ init(uint8_t stack)
 	TCCR1A = 0;				/* normal operation */
 	TCCR1B = TIMER_FLAGS;			/* prescale */
 	TIMSK = (_BV(OCIE1A) | _BV(TOIE1));	/* enable interrupts */
+	OCR1A = 0;				/* default overflow */
 
+	DDRB |= _BV(PB1);		/* DEBUG */
+
+	SIMPLEQ_INIT(&kernel.runq);
+
+	kernel.lasthit = 0;
 	kernel.cycles = 0;
 	kernel.freemem = (void *)(RAMEND - stack);
 	kernel.last = kernel.task;
-	kernel.running = kernel.task;
+	kernel.last->release = 0;
+	kernel.last->prio = 0;
+	kernel.last->state = RUNQ;
 
-	/* Initialize idle task (task 0) */
-	kernel.running->deadline = EPOCH;
-#if SLACK
-	kernel.running->slack = EPOCH;
-#endif
-	kernel.running->state = RUNQ;
+	SIMPLEQ_INSERT_HEAD(&kernel.runq, kernel.last, link);
 
 	sei();
 }
 
 void
-exec(void (*fun)(void *), uint8_t stack, void *args)
+exec(void (*fun)(void *), uint8_t stack, void *args, uint8_t prio)
 {
 	struct task *t;
 	uint8_t *sp;
@@ -165,10 +170,7 @@ exec(void (*fun)(void *), uint8_t stack, void *args)
 	t = ++kernel.last;
 
 	t->release = 0;
-	t->deadline = EPOCH;
-#if SLACK
-	t->slack = 0;
-#endif
+	t->prio = prio;
 	t->state = TIMEQ;
 
 	t->sp = (uint16_t)sp;		/* SP */
@@ -176,6 +178,7 @@ exec(void (*fun)(void *), uint8_t stack, void *args)
 	SCHEDULE();
 }
 
+#if 0
 void
 semaphore(uint8_t sema, uint8_t val)
 {
@@ -192,7 +195,7 @@ wait(uint8_t sema)
 	cli();
 
 	if (kernel.semaphore[sema] == 0) {
-		kernel.running->state = WAITQOFFSET + sema;
+		kernel.running->state = WAITQ + sema;
 		SCHEDULE();
 	} else {
 		--kernel.semaphore[sema];
@@ -210,7 +213,7 @@ signal(uint8_t sema)
 	rtr = kernel.task;
 
 	for (t = &kernel.task[1]; t <= kernel.last; t++) {
-		if (t->state == WAITQOFFSET + sema)
+		if (t->state == WAITQ + sema)
 			if (DISTANCE(t->deadline, rtr->deadline) > 0)
 				rtr = t;
 	}
@@ -223,81 +226,27 @@ signal(uint8_t sema)
 		sei();
 	}
 }
+#endif
 
 void
-set(uint32_t release, uint32_t deadline)
+sleep(uint32_t ticks)
 {
-	struct task *t;
-	uint32_t now;
+	struct task *tp;
 
 	cli();
 
-	now = NOW(kernel.cycles, TCNT1);
-	t = kernel.running;
-#if SLACK
-	t->slack = DISTANCE(now, t->deadline);
-#endif
-	t->state = TIMEQ;
-	t->release = release;
-	t->deadline = deadline;
+	tp = SIMPLEQ_FIRST(&kernel.runq);
+	tp->release += ticks;
+	tp->time = 0;
+	tp->state = TIMEQ;
 
 	SCHEDULE();
-}
-
-void
-update(uint32_t release, uint32_t deadline)
-{
-	struct task *t;
-	uint32_t now;
-
-	cli();
-
-	now = NOW(kernel.cycles, TCNT1);
-	t = kernel.running;
-#if SLACK
-	t->slack = DISTANCE(now, t->deadline);
-#endif
-	t->state = TIMEQ;
-	t->release += release;
-	t->deadline = t->release + deadline;
-
-	SCHEDULE();
-}
-
-uint32_t
-deadline(void)
-{
-	uint32_t ret;
-
-	cli();
-	ret = kernel.running->deadline;
-	sei();
-
-	return ret;
-}
-
-uint32_t
-release(void)
-{
-	uint32_t ret;
-
-	cli();
-	ret = kernel.running->release;
-	sei();
-
-	return ret;
 }
 
 uint32_t
 now(void)
 {
-	uint32_t ret;
-
-	cli();
-	ret = NOW(kernel.cycles, TCNT1);
-	sei();
-
-	return ret;
+	return NOW(kernel.cycles, TCNT1);
 }
 
 void
@@ -305,19 +254,12 @@ suspend(void)
 {
 	cli();
 
-	kernel.running->state = TERMINATED;
-
+	SIMPLEQ_FIRST(&kernel.runq)->state = TERMINATED;
 	SCHEDULE();
 }
 
 uint8_t
 running(void)
 {
-	uint8_t ret;
-
-	cli();
-	ret = kernel.running - kernel.task;
-	sei();
-
-	return ret;
+	return SIMPLEQ_FIRST(&kernel.runq) - &kernel.task[0];
 }

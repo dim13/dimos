@@ -26,8 +26,6 @@ ctrl(void *arg)
 {
 	struct ctrlarg *a = arg;
 
-	update(now(), MSEC(500));
-
 	for (;;) {
 		sprintf(a->lcd->first, "%8lx", now());
 		sprintf(a->lcd->second, "%4d:%.2d:%.2d:%.2d",
@@ -35,6 +33,6 @@ ctrl(void *arg)
 			a->clock->h,
 			a->clock->m,
 			a->clock->s);
-		update(MSEC(500), MSEC(750));
+		sleep(MSEC(500));
 	}
 }
