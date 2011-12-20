@@ -60,12 +60,12 @@ pwm(void *arg)
 		v = *a->value;
 		//sei();
 
-		if ((on = SEC2(v) / UINT8_MAX)) {
+		if ((on = SEC2(v) / INT8_MAX)) {
 			PORTB |= _BV(a->pin);
 			sleep(on);
 		}
 
-		if ((off = SEC2(UINT8_MAX - v) / UINT8_MAX)) {
+		if ((off = SEC2(UINT8_MAX - v) / INT8_MAX)) {
 			PORTB &= ~_BV(a->pin);
 			sleep(off);
 		}
