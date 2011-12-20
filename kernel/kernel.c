@@ -27,6 +27,8 @@
 #include "stack.h"
 #include "queue.h"
 
+#define DEBUG 0
+
 enum State { TERMINATED, RUNQ, TIMEQ, WAITQ };
 
 #define LO8(x)			((uint8_t)((uint16_t)(x)))
@@ -72,7 +74,9 @@ ISR(TIMER1_COMPA_vect, ISR_NAKED)
 
 	now = NOW(kernel.cycles, TCNT1);
 
+	#if DEBUG
 	PORTB ^= _BV(PB1);		/* DEBUG */
+	#endif
 
 	/* save stack pointer */
 	tp = SIMPLEQ_FIRST(&kernel.runq);
@@ -126,7 +130,9 @@ init(uint8_t stack)
 	TIMSK = (_BV(OCIE1A) | _BV(TOIE1));	/* enable interrupts */
 	OCR1A = 0;				/* default overflow */
 
+	#if DEBUG
 	DDRB |= _BV(PB1);		/* DEBUG */
+	#endif
 
 	SIMPLEQ_INIT(&kernel.runq);
 
@@ -169,7 +175,7 @@ exec(void (*fun)(void *), uint8_t stack, void *args, uint8_t prio)
 
 	t = ++kernel.last;
 
-	t->release = 0;
+	t->release = NOW(kernel.cycles, TCNT1);
 	t->prio = prio;
 	t->state = TIMEQ;
 

@@ -52,9 +52,6 @@ main()
 	exec(pwm, STACK, &pwmargs[0], HIGH);
 	exec(pwm, STACK, &pwmargs[1], HIGH);
 	exec(pwm, STACK, &pwmargs[2], HIGH);
-#endif
-
-#if 1
 	exec(adc, STACK, &adcarg, LOW);
 #endif
 
