@@ -32,8 +32,6 @@ adc(void *arg)
 
 	ADCSRA |= (_BV(ADEN) | ADC_FLAGS);
 
-	update(0, DL);
-
 	for (;;) {
 		if (bit_is_clear(ADCSRA, ADSC)) {
 			cli();
@@ -43,6 +41,6 @@ adc(void *arg)
 			ADMUX = i;
 			ADCSRA |= _BV(ADSC);
 		}
-		update(MSEC(500 / ADCCHANNELS), DL);
+		sleep(MSEC(500 / ADCCHANNELS));
 	}
 }

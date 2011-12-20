@@ -41,8 +41,6 @@ ppm(void *arg)
 	DDRB |= _BV(DDB1);
 	OFF;
 
-	update(0, DL);
-	
 	/* frame length 20ms, channel 0.7-1.7ms, stop 0.3 ms */
 	for (;;) {
 		t = FRAME;
@@ -57,19 +55,19 @@ ppm(void *arg)
 
 			/* start frame 0.3ms low */
 			SWITCH;
-			update(DELIM, DL);
+			sleep(DELIM);
 
 			/* channel frame 0.7..1.7ms high */
 			SWITCH;
-			update(n, DL);
+			sleep(n);
 		}
 
 		/* sync frame */
 
 		SWITCH;
-		update(DELIM, DL);
+		sleep(DELIM);
 
 		SWITCH;
-		update(t - DELIM, DL);
+		sleep(t - DELIM);
 	}
 }

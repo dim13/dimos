@@ -44,31 +44,31 @@ main()
 	init_uart();
 
 #if 1
-	exec(heartbeat, STACK, 0);
+	exec(heartbeat, STACK, 0, LOW);
 #endif
 
 #if 1
-	exec(rgb, STACK + 16, &rgbargs);
-	exec(pwm, STACK, &pwmargs[0]);
-	exec(pwm, STACK, &pwmargs[1]);
-	exec(pwm, STACK, &pwmargs[2]);
+	exec(rgb, STACK + 16, &rgbargs, LOW);
+	exec(pwm, STACK, &pwmargs[0], HIGH);
+	exec(pwm, STACK, &pwmargs[1], HIGH);
+	exec(pwm, STACK, &pwmargs[2], HIGH);
 #endif
 
 #if 1
-	exec(adc, STACK, &adcarg);
+	exec(adc, STACK, &adcarg, LOW);
 #endif
 
 #if 1
-	exec(lcd, STACK, &lcdarg);
-	exec(clock, STACK + 48, &clockarg);
+	exec(lcd, STACK, &lcdarg, LOW);
+	exec(clock, STACK + 48, &clockarg, LOW);
 #endif
 
 #if 0
-	exec(cmd, STACK, &rgbargs);
+	exec(cmd, STACK, &rgbargs, LOW);
 #endif
 
 #if 0
-	exec(ppm, STACK, &ppmarg);
+	exec(ppm, STACK, &ppmarg, LOW);
 #endif
 
 	for (;;)
