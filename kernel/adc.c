@@ -34,9 +34,9 @@ adc(void *arg)
 
 	for (;;) {
 		if (bit_is_clear(ADCSRA, ADSC)) {
-			cli();
+			//cli();
 			a->value[i] = ADCW;
-			sei();
+			//sei();
 			i = (i + 1) % ADCCHANNELS;
 			ADMUX = i;
 			ADCSRA |= _BV(ADSC);
