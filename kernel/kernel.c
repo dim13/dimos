@@ -30,7 +30,7 @@
 #define DEBUG	1
 #define NPRIO	4
 
-enum State { TERMINATED, RUNQ, TIMEQ, WAITQ };
+enum State { TERMINATED, RTR, RUNQ, SLEEPING, WAITING };
 
 #define LO8(x)			((uint8_t)((uint16_t)(x)))
 #define HI8(x)			((uint8_t)((uint16_t)(x) >> 8))
@@ -79,53 +79,39 @@ ISR(TIMER1_COMPA_vect, ISR_NAKED)
 	PORTB ^= _BV(PB1);		/* DEBUG */
 	#endif
 
-	/* save stack pointer */
-	tp = kernel.current;
-	tp->sp = SP;
-
-#if 0
-	/* involuntary switch, reduce prio */
-	switch (tp->state) {
-	case RUNQ:		/* involuntay, reduce prio */
-		if (tp->prio > 0)
-			--(tp->prio);
-		break;
-	case TIMEQ:		/* voluntary, rise prio */
-		if (tp->prio < (NPRIO - 1))
-			++(tp->prio);
-		break;
-	default:
-		break;
-	}
-#endif
-
-	tp->state = TIMEQ;
-
-	/* drop current task from run-queue */
-	SIMPLEQ_REMOVE_HEAD(&kernel.runq[tp->prio], link);
+	/* save stack pointer and drop task from run-queue */
+	kernel.current->sp = SP;
+	if (kernel.current->state == RUNQ)
+		kernel.current->state = RTR;
+	SIMPLEQ_REMOVE_HEAD(&kernel.runq[kernel.current->prio], link);
 
 	nexthit = 0xffff;
 	prio = 0;
 
 	/* walk through tasks and assemble run-queue */
 	for (tp = &kernel.task[1]; tp <= kernel.last; tp++) {
-		if (tp->state != TIMEQ)
-			continue;
-		dist = DISTANCE(now, tp->release);
-		if (dist <= 0) {
-			tp->state = RUNQ;
+		if (tp->state == SLEEPING) {
+			dist = DISTANCE(now, tp->release);
+			if (dist <= 0)
+				tp->state = RTR;
+			else if (dist < nexthit)
+				nexthit = dist;
+		}
+		if (tp->state == RTR) {
+			/* find highest priority */
 			if (tp->prio > prio)
 				prio = tp->prio;
+			/* put task on queue */
+			tp->state = RUNQ;
 			SIMPLEQ_INSERT_TAIL(&kernel.runq[tp->prio], tp, link);
-		} else if (dist < nexthit)
-			nexthit = dist;
+		}
 	}
 
 	/* idle if all queues empty */
-	if (!prio && SIMPLEQ_EMPTY(kernel.runq))
-		SIMPLEQ_INSERT_HEAD(kernel.runq, kernel.task, link);
+	if (prio == 0 && SIMPLEQ_EMPTY(&kernel.runq[0]))
+		SIMPLEQ_INSERT_HEAD(&kernel.runq[0], &kernel.task[0], link);
 
-	/* restore stack pointer */
+	/* pick highest priority and restore stack pointer */
 	kernel.current = SIMPLEQ_FIRST(&kernel.runq[prio]);
 	SP = kernel.current->sp;
 
@@ -164,13 +150,14 @@ init(uint8_t stack)
 	kernel.task->state = RUNQ;
 	kernel.last = kernel.task;
 	kernel.current = kernel.task;
-	SIMPLEQ_INSERT_HEAD(kernel.runq, kernel.task, link);
+
+	SIMPLEQ_INSERT_HEAD(&kernel.runq[0], &kernel.task[0], link);
 
 	sei();
 }
 
 void
-exec(void (*fun)(void *), uint8_t stack, void *args, uint8_t prio)
+exec(void (*fun)(void *), void *args, uint8_t stack, uint8_t prio)
 {
 	struct task *t;
 	uint8_t *sp;
@@ -195,11 +182,13 @@ exec(void (*fun)(void *), uint8_t stack, void *args, uint8_t prio)
 
 	t = ++kernel.last;
 
-	t->release = NOW(kernel.cycles, TCNT1);
+	t->release = 0;
+
 	if (prio >= NPRIO)
 		prio = NPRIO - 1;
 	t->prio = prio;
-	t->state = TIMEQ;
+
+	t->state = RTR;
 
 	t->sp = (uint16_t)sp;		/* SP */
 
@@ -259,13 +248,10 @@ signal(uint8_t sema)
 void
 sleep(uint32_t ticks)
 {
-	struct task *tp;
-
 	cli();
 
-	tp = kernel.current;
-	tp->release += ticks;
-	tp->state = TIMEQ;
+	kernel.current->release += ticks;
+	kernel.current->state = SLEEPING;
 
 	SCHEDULE();
 }
@@ -281,7 +267,7 @@ suspend(void)
 {
 	cli();
 
-	kernel.current = TERMINATED;
+	kernel.current->state = TERMINATED;
 	SCHEDULE();
 }
 
