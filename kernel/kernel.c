@@ -28,7 +28,7 @@
 #include "queue.h"
 
 #define DEBUG	1
-#define NPRIO	4
+#define NPRIO	2
 
 enum State { TERMINATED, RTR, RUNQ, SLEEPING, WAITING };
 
@@ -102,14 +102,16 @@ ISR(TIMER1_COMPA_vect, ISR_NAKED)
 			if (tp->prio > prio)
 				prio = tp->prio;
 			/* put task on queue */
-			tp->state = RUNQ;
 			SIMPLEQ_INSERT_TAIL(&kernel.runq[tp->prio], tp, link);
+			tp->state = RUNQ;
 		}
 	}
 
 	/* idle if all queues empty */
-	if (prio == 0 && SIMPLEQ_EMPTY(&kernel.runq[0]))
-		SIMPLEQ_INSERT_TAIL(&kernel.runq[0], &kernel.task[0], link);
+	if (prio == 0 && SIMPLEQ_EMPTY(&kernel.runq[prio])) {
+		SIMPLEQ_INSERT_TAIL(&kernel.runq[prio], kernel.task, link);
+		kernel.task->state = RUNQ;
+	}
 
 	/* pick highest priority and restore stack pointer */
 	kernel.current = SIMPLEQ_FIRST(&kernel.runq[prio]);
@@ -148,10 +150,11 @@ init(uint8_t stack)
 	kernel.task->release = 0;
 	kernel.task->prio = 0;
 	kernel.task->state = RUNQ;
+
+	SIMPLEQ_INSERT_TAIL(&kernel.runq[0], kernel.task, link);
+
 	kernel.last = kernel.task;
 	kernel.current = kernel.task;
-
-	SIMPLEQ_INSERT_TAIL(&kernel.runq[0], &kernel.task[0], link);
 
 	sei();
 }
