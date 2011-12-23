@@ -109,7 +109,7 @@ ISR(TIMER1_COMPA_vect, ISR_NAKED)
 
 	/* idle if all queues empty */
 	if (prio == 0 && SIMPLEQ_EMPTY(&kernel.runq[0]))
-		SIMPLEQ_INSERT_HEAD(&kernel.runq[0], &kernel.task[0], link);
+		SIMPLEQ_INSERT_TAIL(&kernel.runq[0], &kernel.task[0], link);
 
 	/* pick highest priority and restore stack pointer */
 	kernel.current = SIMPLEQ_FIRST(&kernel.runq[prio]);
@@ -151,7 +151,7 @@ init(uint8_t stack)
 	kernel.last = kernel.task;
 	kernel.current = kernel.task;
 
-	SIMPLEQ_INSERT_HEAD(&kernel.runq[0], &kernel.task[0], link);
+	SIMPLEQ_INSERT_TAIL(&kernel.runq[0], &kernel.task[0], link);
 
 	sei();
 }
