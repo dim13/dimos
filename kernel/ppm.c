@@ -46,9 +46,9 @@ ppm(void *arg)
 		t = FRAME;
 
 		for (i = 0; i < ADCCHANNELS; i++) {
-			cli();
+			//cli();
 			v = SEC3(a->value[i]);
-			sei();
+			//sei();
 			
 			n = SIGMIN + v / ADCMAX;
 			t -= n + DELIM;
