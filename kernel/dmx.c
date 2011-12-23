@@ -41,36 +41,36 @@ struct pwmarg pwmargs[] = {
 int
 main()
 {
-	init(STACK);
+	init(STACK - 6);				/* 42 */
 	init_uart();
 
-#define LOW	1
-#define MID	1
-#define HIGH	1
+#define LOW	0
+#define MID	0
+#define HIGH	0
 
 #if 1
-	exec(heartbeat, NULL, STACK, LOW);
+	exec(heartbeat, NULL, STACK - 10, LOW);		/* 38 */
 #endif
 
 #if 1
-	exec(rgb, &rgbargs, STACK + 16, MID);
-	exec(pwm, &pwmargs[0], STACK, HIGH);
-	exec(pwm, &pwmargs[1], STACK, HIGH);
-	exec(pwm, &pwmargs[2], STACK, HIGH);
-	exec(adc, &adcarg, STACK, LOW);
+	exec(rgb, &rgbargs, STACK + 24, MID);		/* 72 */
+	exec(pwm, &pwmargs[0], STACK, HIGH);		/* 48 */
+	exec(pwm, &pwmargs[1], STACK, HIGH);		/* 48 */
+	exec(pwm, &pwmargs[2], STACK, HIGH);		/* 48 */
+	exec(adc, &adcarg, STACK - 6, LOW);		/* 42 */
 #endif
 
 #if 1
-	exec(lcd, &lcdarg, STACK, LOW);
-	exec(clock, &clockarg, STACK + 48, LOW);
+	exec(lcd, &lcdarg, STACK, LOW);			/* 48 */
+	exec(clock, &clockarg, STACK + 24, LOW);	/* 72 */
 #endif
 
 #if 0
-	exec(cmd, &rgbargs, STACK, LOW);
+	exec(cmd, &rgbargs, STACK, LOW);		/* 48 */
 #endif
 
 #if 0
-	exec(ppm, &ppmarg, STACK, LOW);
+	exec(ppm, &ppmarg, STACK, LOW);			/* 48 */
 #endif
 
 	for (;;)
