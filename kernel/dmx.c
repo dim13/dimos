@@ -43,12 +43,16 @@ main()
 	init(STACK);
 	init_uart();
 
+#define LOW	0
+#define MID	0
+#define HIGH	0
+
 #if 1
 	exec(heartbeat, STACK, 0, LOW);
 #endif
 
 #if 1
-	exec(rgb, STACK + 16, &rgbargs, LOW);
+	exec(rgb, STACK + 16, &rgbargs, MID);
 	exec(pwm, STACK, &pwmargs[0], HIGH);
 	exec(pwm, STACK, &pwmargs[1], HIGH);
 	exec(pwm, STACK, &pwmargs[2], HIGH);
@@ -61,11 +65,11 @@ main()
 #endif
 
 #if 0
-	exec(cmd, STACK, &rgbargs, LOW);
+	exec(cmd, STACK, &rgbargs, 0);
 #endif
 
 #if 0
-	exec(ppm, STACK, &ppmarg, LOW);
+	exec(ppm, STACK, &ppmarg, 0);
 #endif
 
 	for (;;)

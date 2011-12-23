@@ -27,7 +27,8 @@
 #include "stack.h"
 #include "queue.h"
 
-#define DEBUG 0
+#define DEBUG	1
+#define NPRIO	4
 
 enum State { TERMINATED, RUNQ, TIMEQ, WAITQ };
 
@@ -48,8 +49,9 @@ struct task {
 };
 
 struct kernel {
-	SIMPLEQ_HEAD(, task) runq;
+	SIMPLEQ_HEAD(, task) runq[NPRIO];
 	struct task *last;	/* last allocated task */
+	struct task *current;
 	struct task task[TASKS + 1];
 	uint32_t lasthit;
 	uint16_t cycles;
@@ -68,6 +70,7 @@ ISR(TIMER1_COMPA_vect, ISR_NAKED)
 	int32_t dist;
 	uint32_t now;
 	uint16_t nexthit;
+	uint8_t prio;
 
 	/* save context */
 	PUSH_ALL();
@@ -79,15 +82,34 @@ ISR(TIMER1_COMPA_vect, ISR_NAKED)
 	#endif
 
 	/* save stack pointer */
-	tp = SIMPLEQ_FIRST(&kernel.runq);
+	tp = kernel.current;
 	tp->sp = SP;
+
+#if 0
+	/* involuntary switch, reduce prio */
+	switch (tp->state) {
+	case RUNQ:		/* involuntay, reduce prio */
+		if (tp->prio > 0)
+			--(tp->prio);
+		break;
+	case TIMEQ:		/* voluntary, rise prio */
+		if (tp->prio < (NPRIO - 1))
+			++(tp->prio);
+		break;
+	default:
+		break;
+	}
+#endif
+
 	tp->state = TIMEQ;
 	tp->time += DISTANCE(kernel.lasthit, now);
+
 	/* drop current task from run-queue */
-	SIMPLEQ_REMOVE_HEAD(&kernel.runq, link);
+	SIMPLEQ_REMOVE_HEAD(&kernel.runq[tp->prio], link);
 
 	kernel.lasthit = now;
 	nexthit = 0xffff;
+	prio = 0;
 
 	/* walk through tasks and assemble run-queue */
 	for (tp = &kernel.task[1]; tp <= kernel.last; tp++) {
@@ -96,20 +118,20 @@ ISR(TIMER1_COMPA_vect, ISR_NAKED)
 		dist = DISTANCE(now, tp->release);
 		if (dist <= 0) {
 			tp->state = RUNQ;
-			if (tp->prio == HIGH)
-				SIMPLEQ_INSERT_HEAD(&kernel.runq, tp, link);
-			else
-				SIMPLEQ_INSERT_TAIL(&kernel.runq, tp, link);
+			if (tp->prio > prio)
+				prio = tp->prio;
+			SIMPLEQ_INSERT_TAIL(&kernel.runq[tp->prio], tp, link);
 		} else if (dist < nexthit)
 			nexthit = dist;
 	}
 
-	/* idle if empty */
-	if (SIMPLEQ_EMPTY(&kernel.runq))
-		SIMPLEQ_INSERT_HEAD(&kernel.runq, &kernel.task[0], link);
+	/* idle if all queues empty */
+	if (!prio && SIMPLEQ_EMPTY(kernel.runq))
+		SIMPLEQ_INSERT_HEAD(kernel.runq, kernel.task, link);
 
 	/* restore stack pointer */
-	SP = SIMPLEQ_FIRST(&kernel.runq)->sp;
+	kernel.current = SIMPLEQ_FIRST(&kernel.runq[prio]);
+	SP = kernel.current->sp;
 
 	OCR1A = (uint16_t)(now + nexthit);
 
@@ -121,6 +143,8 @@ ISR(TIMER1_COMPA_vect, ISR_NAKED)
 void
 init(uint8_t stack)
 {
+	uint8_t	prio;
+
 	cli();
 
 	/* Set up timer 1 */
@@ -134,17 +158,18 @@ init(uint8_t stack)
 	DDRB |= _BV(PB1);		/* DEBUG */
 	#endif
 
-	SIMPLEQ_INIT(&kernel.runq);
+	for (prio = 0; prio < NPRIO; prio++)
+		SIMPLEQ_INIT(&kernel.runq[prio]);
 
 	kernel.lasthit = 0;
 	kernel.cycles = 0;
 	kernel.freemem = (void *)(RAMEND - stack);
+	kernel.task->release = 0;
+	kernel.task->prio = 0;
+	kernel.task->state = RUNQ;
 	kernel.last = kernel.task;
-	kernel.last->release = 0;
-	kernel.last->prio = 0;
-	kernel.last->state = RUNQ;
-
-	SIMPLEQ_INSERT_HEAD(&kernel.runq, kernel.last, link);
+	kernel.current = kernel.task;
+	SIMPLEQ_INSERT_HEAD(kernel.runq, kernel.task, link);
 
 	sei();
 }
@@ -176,6 +201,8 @@ exec(void (*fun)(void *), uint8_t stack, void *args, uint8_t prio)
 	t = ++kernel.last;
 
 	t->release = NOW(kernel.cycles, TCNT1);
+	if (prio >= NPRIO)
+		prio = NPRIO - 1;
 	t->prio = prio;
 	t->state = TIMEQ;
 
@@ -241,7 +268,7 @@ sleep(uint32_t ticks)
 
 	cli();
 
-	tp = SIMPLEQ_FIRST(&kernel.runq);
+	tp = kernel.current;
 	tp->release += ticks;
 	tp->time = 0;
 	tp->state = TIMEQ;
@@ -260,12 +287,12 @@ suspend(void)
 {
 	cli();
 
-	SIMPLEQ_FIRST(&kernel.runq)->state = TERMINATED;
+	kernel.current = TERMINATED;
 	SCHEDULE();
 }
 
 uint8_t
 running(void)
 {
-	return SIMPLEQ_FIRST(&kernel.runq) - &kernel.task[0];
+	return kernel.current - kernel.task;
 }

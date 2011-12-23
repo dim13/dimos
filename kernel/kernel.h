@@ -89,8 +89,6 @@
 #define SEC1(T)	((uint32_t)(T) * ((F_CPU / 10) / PRESCALE))
 #define SEC0(T)	((uint32_t)(T) * ((F_CPU / 1) / PRESCALE))
 
-enum Prio { LOW, HIGH };
-
 /* __BEGIN_DECLS */
 
 void init(uint8_t stack);
