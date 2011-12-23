@@ -44,9 +44,9 @@ main()
 	init(STACK);
 	init_uart();
 
-#define LOW	0
-#define MID	0
-#define HIGH	0
+#define LOW	1
+#define MID	1
+#define HIGH	1
 
 #if 1
 	exec(heartbeat, NULL, STACK, LOW);
