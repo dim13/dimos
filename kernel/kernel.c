@@ -42,7 +42,6 @@ enum State { TERMINATED, RUNQ, TIMEQ, WAITQ };
 struct task {
 	uint32_t release;
 	uint16_t sp;		/* stack pointer */
-	uint32_t time;		/* stack pointer */
 	uint8_t state;
 	uint8_t prio;
 	SIMPLEQ_ENTRY(task) link;
@@ -53,7 +52,6 @@ struct kernel {
 	struct task *last;	/* last allocated task */
 	struct task *current;
 	struct task task[TASKS + 1];
-	uint32_t lasthit;
 	uint16_t cycles;
 	uint8_t *freemem;
 	uint8_t semaphore[SEMAPHORES];
@@ -102,12 +100,10 @@ ISR(TIMER1_COMPA_vect, ISR_NAKED)
 #endif
 
 	tp->state = TIMEQ;
-	tp->time += DISTANCE(kernel.lasthit, now);
 
 	/* drop current task from run-queue */
 	SIMPLEQ_REMOVE_HEAD(&kernel.runq[tp->prio], link);
 
-	kernel.lasthit = now;
 	nexthit = 0xffff;
 	prio = 0;
 
@@ -161,7 +157,6 @@ init(uint8_t stack)
 	for (prio = 0; prio < NPRIO; prio++)
 		SIMPLEQ_INIT(&kernel.runq[prio]);
 
-	kernel.lasthit = 0;
 	kernel.cycles = 0;
 	kernel.freemem = (void *)(RAMEND - stack);
 	kernel.task->release = 0;
@@ -270,7 +265,6 @@ sleep(uint32_t ticks)
 
 	tp = kernel.current;
 	tp->release += ticks;
-	tp->time = 0;
 	tp->state = TIMEQ;
 
 	SCHEDULE();
