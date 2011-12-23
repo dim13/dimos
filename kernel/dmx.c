@@ -16,6 +16,7 @@
  */
 
 #include <stdint.h>
+#include <string.h>
 #include <avr/io.h>
 #include <avr/cpufunc.h>
 #include "kernel.h"
@@ -48,28 +49,28 @@ main()
 #define HIGH	0
 
 #if 1
-	exec(heartbeat, STACK, 0, LOW);
+	exec(heartbeat, NULL, STACK, LOW);
 #endif
 
 #if 1
-	exec(rgb, STACK + 16, &rgbargs, MID);
-	exec(pwm, STACK, &pwmargs[0], HIGH);
-	exec(pwm, STACK, &pwmargs[1], HIGH);
-	exec(pwm, STACK, &pwmargs[2], HIGH);
-	exec(adc, STACK, &adcarg, LOW);
+	exec(rgb, &rgbargs, STACK + 16, MID);
+	exec(pwm, &pwmargs[0], STACK, HIGH);
+	exec(pwm, &pwmargs[1], STACK, HIGH);
+	exec(pwm, &pwmargs[2], STACK, HIGH);
+	exec(adc, &adcarg, STACK, LOW);
 #endif
 
 #if 1
-	exec(lcd, STACK, &lcdarg, LOW);
-	exec(clock, STACK + 48, &clockarg, LOW);
+	exec(lcd, &lcdarg, STACK, LOW);
+	exec(clock, &clockarg, STACK + 48, LOW);
 #endif
 
 #if 0
-	exec(cmd, STACK, &rgbargs, 0);
+	exec(cmd, &rgbargs, STACK, LOW);
 #endif
 
 #if 0
-	exec(ppm, STACK, &ppmarg, 0);
+	exec(ppm, &ppmarg, STACK, LOW);
 #endif
 
 	for (;;)

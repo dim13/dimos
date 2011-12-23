@@ -92,7 +92,7 @@
 /* __BEGIN_DECLS */
 
 void init(uint8_t stack);
-void exec(void (*fun)(void *), uint8_t stack, void *args, uint8_t prio);
+void exec(void (*fun)(void *), void *args, uint8_t stack, uint8_t prio);
 void semaphore(uint8_t semnbr, uint8_t initVal);
 
 void wait(uint8_t semnbr);
