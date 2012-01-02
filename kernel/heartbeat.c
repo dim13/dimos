@@ -16,6 +16,7 @@
  */
 
 #include <stdint.h>
+#include <stdio.h>
 #include <avr/io.h>
 #include "kernel.h"
 #include "tasks.h"

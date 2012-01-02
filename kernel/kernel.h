@@ -19,27 +19,32 @@
 #define __KERNEL_H
 
 #ifndef TASKS
-#warning TASKS not set, fallback to default
+#warning TASKS not set, fallback to default: 8
 #define TASKS 8
 #endif
 
+#ifndef PRIORITIES
+#warning PRIORITIES not set, fallback to default: 2
+#define PRIORITIES 2
+#endif
+
 #ifndef SEMAPHORES
-#warning SEMAPHORES not set, fallback to default
-#define SEMAPHORES 8
+#warning SEMAPHORES not set, fallback to default: 4
+#define SEMAPHORES 4
 #endif
 
 #ifndef STACK
-#warning STACK not set, fallback to default
+#warning STACK not set, fallback to default: 64
 #define STACK 64
 #endif
 
 #ifndef F_CPU
-#warning F_CPU not set, fallback to default
+#warning F_CPU not set, fallback to default: 16MHz
 #define F_CPU 16000000
 #endif
 
 #ifndef PRESCALE
-#warning PRESCALE not set, fallback to default
+#warning PRESCALE not set, fallback to default: 1
 #define PRESCALE 1
 #endif
 
@@ -93,10 +98,10 @@
 
 void init(uint8_t stack);
 void exec(void (*fun)(void *), void *args, uint8_t stack, uint8_t prio);
-void semaphore(uint8_t semnbr, uint8_t initVal);
 
-void wait(uint8_t semnbr);
-void signal(uint8_t semnbr);
+void wait(uint8_t sema);
+void signal(uint8_t sema);
+
 void suspend(void);
 void sleep(uint32_t ticks);
 

@@ -16,13 +16,14 @@
  */
 
 #include <stdint.h>
+#include <stdio.h>
 #include <avr/io.h>
 #include <avr/interrupt.h>
+#include <avr/cpufunc.h>
 #include "kernel.h"
 #include "tasks.h"
 
 #define MUXMASK	0x07
-#define DL	MSEC(20)
 
 void
 adc(void *arg)
@@ -33,14 +34,17 @@ adc(void *arg)
 	ADCSRA |= (_BV(ADEN) | ADC_FLAGS);
 
 	for (;;) {
-		if (bit_is_clear(ADCSRA, ADSC)) {
+		for (i = 0; i < ADCCHANNELS; i++) {
+			ADMUX = i & MUXMASK;
+			ADCSRA |= _BV(ADSC);
+			loop_until_bit_is_clear(ADCSRA, ADSC);
 			//cli();
 			a->value[i] = ADCW;
 			//sei();
-			i = (i + 1) % ADCCHANNELS;
-			ADMUX = i;
-			ADCSRA |= _BV(ADSC);
 		}
-		sleep(MSEC(500 / ADCCHANNELS));
+		wait(0);
+		fprintf(stderr, "\n%8lx%8x", now(), a->value[0]);
+		signal(0);
+		sleep(MSEC(100));
 	}
 }

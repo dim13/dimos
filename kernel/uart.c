@@ -31,69 +31,25 @@
 #include "kernel.h"
 #include "tasks.h"
 
-int
-uart_putchar(char c)
-{
-	if (c == '\n')
-		uart_putchar('\r');
-	loop_until_bit_is_set(UCSRA, UDRE);
-	UDR = c;
-
-	return 0;
-}
-
-int
-uart_getchar(void)
-{
-	char c;
-
-#if 0	/* BLOCKING */
-	loop_until_bit_is_set(UCSRA, RXC);
-#else
-	if (bit_is_clear(UCSRA, RXC))
-		return 0;
-#endif
-
-	if (bit_is_set(UCSRA, FE))
-		return -2;		/* EOF */
-	if (bit_is_set(UCSRA, DOR))
-		return -1;		/* ERR */
-	c = UDR;
-
-	uart_putchar(c);		/* ECHO */
-
-	switch (c) {
-	case '\r':
-		c = '\n';
-		break;
-	case '\t':
-		c = ' ';
-		break;
-	default:
-		break;
-	}
-
-	return c;
-}
+FILE uart_stream = FDEV_SETUP_STREAM(uart_putchar, uart_getchar, _FDEV_SETUP_RW);
 
 #ifdef USE_RXCIE
 ISR(SIG_UART_RECV)
 {
-	uint8_t	c = UDR;
-	uint8_t *p = 0;
+	uint8_t	c, *p;
 
-	switch (c) {
+	switch ((c = UDR)) {
+	case 'Z':	/* zero */
+		for (p = (uint8_t *)RAMSTART; p <= (uint8_t *)RAMEND; p++)
+			*p = 'A';
+		/* FALLTHROUGH */
 	case 'R':	/* reboot */
 	case '-':	/* reboot */
 		wdt_enable(WDTO_15MS);
 		break;
 	case 'D':	/* dump */
-		while (p <= (uint8_t *)RAMEND)
-			uart_putchar(*p++);
-		break;
-	case 'N':	/* zero */
-		while (p <= (uint8_t *)RAMEND)
-			*p++ = 0xFF;
+		for (p = (uint8_t *)0; p <= (uint8_t *)RAMEND; p++)
+			uart_putchar(*p, NULL);
 		break;
 	case 'T':
 		UCSRB |= _BV(UDRIE);
@@ -105,7 +61,7 @@ ISR(SIG_UART_RECV)
 	case '\n':
 		break;
 	default:
-		uart_putchar('?');
+		uart_putchar('?', NULL);
 		break;
 	}
 }
@@ -119,7 +75,7 @@ ISR(SIG_UART_DATA)
 #endif
 
 void
-init_uart(void)
+uart_init(void)
 {
 	UCSRB = _BV(RXEN) | _BV(TXEN);
 #ifdef USE_RXCIE
@@ -128,4 +84,47 @@ init_uart(void)
 	UBRRH = UBRRH_VALUE;
 	UBRRL = UBRRL_VALUE;
 	UCSRA &= ~_BV(U2X);
+
+	stdin = &uart_stream;
+	stdout = &uart_stream;
+}
+
+int
+uart_putchar(char c, FILE *fd)
+{
+	if (c == '\n')
+		uart_putchar('\r', fd);
+	loop_until_bit_is_set(UCSRA, UDRE);
+	UDR = c;
+
+	return 0;
+}
+
+int
+uart_getchar(FILE *fd)
+{
+	char c;
+
+	loop_until_bit_is_set(UCSRA, RXC);
+
+	if (bit_is_set(UCSRA, FE))
+		return -2;		/* EOF */
+	if (bit_is_set(UCSRA, DOR))
+		return -1;		/* ERR */
+
+	c = UDR;
+	uart_putchar(c, fd);		/* ECHO */
+
+	switch (c) {
+	case '\r':
+		c = '\n';
+		break;
+	case '\t':
+		c = ' ';
+		break;
+	default:
+		break;
+	}
+
+	return c;
 }
