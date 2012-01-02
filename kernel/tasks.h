@@ -51,20 +51,14 @@ struct rgbarg {
 struct pwmarg {
 	uint8_t *value;
 	uint8_t pin;
+	uint8_t sema;
 };
 
 struct adcarg {
 	uint16_t value[ADCCHANNELS];
 };
 
-struct lcdarg {
-	char first[18];
-	char second[18];
-	uint8_t x, y;
-};
-
 struct clockarg {
-	struct lcdarg *lcd;
 	struct adcarg *adc;
 };
 
@@ -72,14 +66,16 @@ struct ppmarg {
 	uint16_t *value;
 };
 
-void	init_uart(void);
-int	uart_getchar(void);
-int	uart_putchar(char);
+void	uart_init(void);
+int	uart_getchar(FILE *);
+int	uart_putchar(char, FILE *);
+
+void	lcd_init(void);
+int	lcd_putchar(char, FILE *);
 
 void	heartbeat(void *);
 void	rgb(void *);
 void	pwm(void *);
-void	lcd(void *);
 void	adc(void *);
 void	ppm(void *);
 void	cmd(void *);

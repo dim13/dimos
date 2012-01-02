@@ -18,11 +18,14 @@
 #define USE_DELAY
 
 #include <stdint.h>
+#include <stdio.h>
 #include <avr/io.h>
 #include <avr/cpufunc.h>
 #include <util/delay.h>
 #include "kernel.h"
 #include "tasks.h"
+
+FILE lcd_stream = FDEV_SETUP_STREAM(lcd_putchar, NULL, _FDEV_SETUP_WRITE);
 
 #define CLEAR_DISPLAY		_BV(0)
 #define RETURN_HOME		_BV(1)
@@ -47,7 +50,6 @@
 #define TWO_LINES		_BV(3)	/* on 2 / off 1 line */
 #define BIG_FONT		_BV(2)	/* on 5x10 / off 5x7 */
 
-
 #define SET_CGRAM_ADDRESS	_BV(6)
 #define SET_DDRAM_ADDRESS	_BV(7)
 #define BUSY_FLAG		_BV(7)
@@ -59,47 +61,15 @@
 #define CLOCK			PD6
 #define E			PD7
 
-#define write_cmd(x, delay)	do {					\
-	write_byte((x), 0);						\
-	_delay_us(delay);						\
-} while (0)
-
-#define write_data(x)		do {					\
-	write_byte((x), 1);						\
-	_delay_us(43);							\
-} while (0)
-
-#define move(line, row)		do {					\
-	write_cmd(SET_DDRAM_ADDRESS | ((line) << 6) | (row), 39);	\
-} while (0)
-
-#define clear()			do {					\
-	write_cmd(CLEAR_DISPLAY, 1530);					\
-} while (0)
-
-#define home()			do {					\
-	write_cmd(RETURN_HOME, 1530);					\
-} while (0)
-
-
-/* recomended cycle 1us: 450ns on, 450ns off.
- * this is beyond our resolution */
-#define wait_short()		do {					\
-	_NOP();								\
-} while (0)
-
-#define strobe(port, bit)	do {					\
-	port |= _BV(bit);						\
-	wait_short();							\
-	port &= ~_BV(bit);						\
-} while (0)
-
-#define setif(cond, port, bit)	do {					\
-	if (cond)							\
-		port |= _BV(bit);					\
-	else								\
-		port &= ~_BV(bit);					\
-} while (0)
+/* recomended cycle: 450ns on, 450ns off. this is beyond our resolution */
+#define strobe(port, bit)	do { port |= _BV(bit); _NOP(); port &= ~_BV(bit); } while (0)
+#define setif(cond, port, bit)	do { if (cond) (port) |= _BV(bit); else (port) &= ~_BV(bit); } while (0)
+#define write_data(x)		do { write_byte((x), 1); _delay_us(43); } while (0)
+#define _write_cmd(x, delay)	do { write_byte((x), 0); _delay_us(delay); } while (0)
+#define write_cmd(x)		_write_cmd((x), 39)
+#define move(line, row)		_write_cmd(SET_DDRAM_ADDRESS | ((line) << 6) | (row), 39)
+#define clear()			_write_cmd(CLEAR_DISPLAY, 1530)
+#define home()			_write_cmd(RETURN_HOME, 1530)
 
 static void
 write_byte(uint8_t byte, uint8_t rs)
@@ -107,59 +77,60 @@ write_byte(uint8_t byte, uint8_t rs)
 	uint8_t i;
 
 	for (i = 0; i < 8; i++) {
-		setif(byte & (0x80 >> i), PORT, DATA);	/* MSF */
+		setif(byte & (0x80 >> i), PORT, DATA); /* MSF */
 		strobe(PORT, CLOCK);
 	}
+
 	setif(rs, PORT, DATA);
 	strobe(PORT, E);
 }
 
-static void
-mvputs(uint8_t line, uint8_t row, char *s)
-{
-	move(line, row);
-	while (*s)
-		write_data(*(s++));
-}
-
-static void
-mvputch(uint8_t line, uint8_t row, char ch)
-{
-	move(line, row);
-	write_data(ch);
-}
-
 void
-lcd(void *arg)
+lcd_init(void)
 {
-	struct lcdarg *a = (struct lcdarg *)arg;
-
 	PORTDIR |= (_BV(DATA) | _BV(CLOCK) | _BV(E));
 
 	/* task init: wait >40ms */
-	sleep(MSEC(40));
+	_delay_ms(40);
 
 	/* 8 bit, 2 line, 5x8 font */
-	write_cmd(FUNCTION_SET | DATA_LENGTH_8BIT | TWO_LINES, 39);
+	write_cmd(FUNCTION_SET | DATA_LENGTH_8BIT | TWO_LINES);
 	/* no BUSY_FLAG until now */
 
 	/* display on, cursor off, cursor blink off */
-	write_cmd(ON_OFF_CONTROL | DISPLAY_ON, 39);
+	write_cmd(ON_OFF_CONTROL | DISPLAY_ON);
 
 	/* clear display */
 	clear();
 
 	/* entry mode */
-	write_cmd(ENTRY_MODE_SET | INC_DDRAM, 39);
+	write_cmd(ENTRY_MODE_SET | INC_DDRAM);
 
 	home();
 
-	*a->first = '\0';
-	*a->second = '\0';
+	stderr = &lcd_stream;
+}
 
-	for (;;) {
-		mvputs(0, 0, a->first);
-		mvputs(1, 0, a->second);
-		sleep(MSEC(40));
+int
+lcd_putchar(char c, FILE *fd)
+{
+	switch (c) {
+	case '\b':	/* XXX */
+		clear();
+		/* FALLTHROUGH */
+	case '\r':
+		home();
+		break;
+	case '\n':
+		move(1, 0);
+		break;
+	case '\t':
+		c = ' ';
+		/* FALLTHROUGH */
+	default:
+		write_data(c);
+		break;
 	}
+
+	return 0;
 }

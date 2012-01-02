@@ -16,65 +16,46 @@
  */
 
 #include <stdint.h>
+#include <stdio.h>
 #include <string.h>
 #include <avr/io.h>
 #include <avr/cpufunc.h>
+#include <avr/sleep.h>
 #include "kernel.h"
 #include "tasks.h"
 
+enum { RT, High, Low };
+
 struct adcarg adcarg;
-
 struct ppmarg ppmarg = { adcarg.value };
-
-struct lcdarg lcdarg;
-
-struct clockarg clockarg = { &lcdarg, &adcarg };
-
 struct rgbarg rgbargs = { 0, 0, 0, &adcarg.value[0] };
-
 struct pwmarg pwmargs[] = {
-	{ &rgbargs.r, PB2 },
-	{ &rgbargs.g, PB3 },
-	{ &rgbargs.b, PB4 }
+	{ &rgbargs.r, PB2, 1 },
+	{ &rgbargs.g, PB3, 2 },
+	{ &rgbargs.b, PB4, 3 }
 };
 
 int
 main()
 {
-	init(STACK - 6);				/* 42 */
-	init_uart();
+	uart_init();
+	lcd_init();
+	init(48);
 
-#define LOW	0
-#define MID	0
-#define HIGH	0
-
-#if 1
-	exec(heartbeat, NULL, STACK - 10, LOW);		/* 38 */
-#endif
-
-#if 1
-	exec(rgb, &rgbargs, STACK + 24, MID);		/* 72 */
-	exec(pwm, &pwmargs[0], STACK, HIGH);		/* 48 */
-	exec(pwm, &pwmargs[1], STACK, HIGH);		/* 48 */
-	exec(pwm, &pwmargs[2], STACK, HIGH);		/* 48 */
-	exec(adc, &adcarg, STACK - 6, LOW);		/* 42 */
-#endif
-
-#if 1
-	exec(lcd, &lcdarg, STACK, LOW);			/* 48 */
-	exec(clock, &clockarg, STACK + 24, LOW);	/* 72 */
-#endif
-
+	exec(heartbeat, NULL, 48, Low);
+	exec(rgb, &rgbargs, 72, High);
+	exec(pwm, &pwmargs[0], 56, RT);
+	exec(pwm, &pwmargs[1], 56, RT);
+	exec(pwm, &pwmargs[2], 56, RT);
+	exec(adc, &adcarg, 96, Low);	
+	exec(clock, NULL, 96, Low);
 #if 0
-	exec(cmd, &rgbargs, STACK, LOW);		/* 48 */
-#endif
-
-#if 0
-	exec(ppm, &ppmarg, STACK, LOW);			/* 48 */
+	exec(cmd, &rgbargs, 48);
+	exec(ppm, &ppmarg, 48);
 #endif
 
 	for (;;)
-		_NOP();
+		sleep_mode();
 
 	return 0;
 }

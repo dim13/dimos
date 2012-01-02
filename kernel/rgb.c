@@ -16,6 +16,7 @@
  */
 
 #include <stdint.h>
+#include <stdio.h>
 #include <avr/io.h>
 #include <avr/interrupt.h>
 #include "kernel.h"
@@ -32,12 +33,21 @@ rgb(void *arg)
 
 	for (;;) {
 		i = (i + 1) % 360;
-		hsv(&r, &g, &b, i, v, v);
+		//hsv(&r, &g, &b, i, v, v);
+		hsv(&r, &g, &b, i, 255, 255);
 
-		//cli();
+		wait(1);
 		a->r = r;
+		signal(1);
+
+		wait(2);
 		a->g = g;
+		signal(2);
+
+		wait(3);
 		a->b = b;
+		signal(3);
+
 		v = *a->v >> 2;		/* 10bit to 8bit */
 		//sei();
 
@@ -55,17 +65,21 @@ pwm(void *arg)
 	DDRB |= _BV(a->pin);
 	PORTB &= ~_BV(a->pin);
 
+#define DIV	(UINT8_MAX >> 1)
+
 	for (;;) {
 		//cli();
+		wait(a->sema);
 		v = *a->value;
+		signal(a->sema);
 		//sei();
 
-		if ((on = SEC2(v) / INT8_MAX)) {
+		if ((on = SEC2(v) / DIV)) {
 			PORTB |= _BV(a->pin);
 			sleep(on);
 		}
 
-		if ((off = SEC2(UINT8_MAX - v) / INT8_MAX)) {
+		if ((off = SEC2(UINT8_MAX - v) / DIV)) {
 			PORTB &= ~_BV(a->pin);
 			sleep(off);
 		}
