@@ -38,9 +38,9 @@ adc(void *arg)
 			ADMUX = i & MUXMASK;
 			ADCSRA |= _BV(ADSC);
 			loop_until_bit_is_clear(ADCSRA, ADSC);
-			//cli();
+			wait(4);
 			a->value[i] = ADCW;
-			//sei();
+			signal(4);
 		}
 		wait(0);
 		fprintf(stderr, "\n%8lx%8x", now(), a->value[0]);
