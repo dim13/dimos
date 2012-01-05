@@ -35,12 +35,12 @@ adc(void *arg)
 
 	for (;;) {
 		for (i = 0; i < ADCCHANNELS; i++) {
-			ADMUX = i & MUXMASK;
+			ADMUX = (i & MUXMASK) | _BV(ADLAR);
 			ADCSRA |= _BV(ADSC);
 			loop_until_bit_is_clear(ADCSRA, ADSC);
-			wait(4);
-			a->value[i] = ADCW;
-			signal(4);
+			cli();
+			a->value[i] = ADCH;	/* ADLAR: 8-bit */
+			sei();
 		}
 		wait(0);
 		fprintf(stderr, "\n%8lx%8x", now(), a->value[0]);

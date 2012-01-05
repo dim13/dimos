@@ -32,24 +32,15 @@ rgb(void *arg)
 	uint8_t r, g, b, v = 0;
 
 	for (;;) {
-		wait(4);
-		v = *a->v >> 2;		/* 10bit to 8bit */
-		signal(4);
-
 		i = (i + 1) % 360;
 		hsv(&r, &g, &b, i, 255, v);
 
-		wait(1);
+		cli();
 		a->r = r;
-		signal(1);
-
-		wait(2);
 		a->g = g;
-		signal(2);
-
-		wait(3);
 		a->b = b;
-		signal(3);
+		v = *a->v;		/* 10bit to 8bit */
+		sei();
 
 		sleep(MSEC(40));
 	}
@@ -68,9 +59,9 @@ pwm(void *arg)
 #define DIV	(UINT8_MAX >> 1)
 
 	for (;;) {
-		wait(a->sema);
+		cli();
 		v = *a->value;
-		signal(a->sema);
+		sei();
 
 		if ((on = SEC2(v) / DIV)) {
 			PORTB |= _BV(a->pin);
