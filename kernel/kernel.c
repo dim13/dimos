@@ -257,6 +257,14 @@ sleep(uint32_t ticks)
 	SCHEDULE();
 }
 
+void
+yield(void)
+{
+	cli();
+
+	SCHEDULE();
+}
+
 uint32_t
 now(void)
 {
