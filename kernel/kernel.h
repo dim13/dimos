@@ -104,6 +104,7 @@ void signal(uint8_t sema);
 
 void suspend(void);
 void sleep(uint32_t ticks);
+void yield(void);
 
 uint32_t now(void);
 uint8_t running(void);
