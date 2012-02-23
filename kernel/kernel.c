@@ -145,9 +145,8 @@ ISR(TIMER1_COMPA_vect, ISR_NAKED)
 	SP = kernel.current->sp;
 
 	if ((tp = TAILQ_FIRST(&kernel.timeq)))
-		OCR1A = (uint16_t)(now + DISTANCE(now, tp->release));
-	else
-		OCR1A = (uint16_t)(now + UINT16_MAX);
+		now += DISTANCE(now, tp->release);
+	OCR1A = now;
 
 	POP_ALL();
 	reti();
