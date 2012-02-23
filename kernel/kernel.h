@@ -52,9 +52,9 @@
 #error invalid PRESCALE value
 #endif
 
-#define MHz	((F_CPU / 1000000) / PRESCALE)
-#define kHz	((F_CPU / 1000) / PRESCALE)
 #define Hz	(F_CPU / PRESCALE)
+#define kHz	(Hz / 1000)
+#define MHz	(kHz / 1000)
 
 #if (!MHz)
 #error MHz value too small, adjust PRESCALE and/or F_CPU
@@ -76,14 +76,6 @@
 #define MSEC(T)	((uint32_t)(T) * kHz)
 #define SEC(T)	((uint32_t)(T) * Hz)
 
-#define SEC6(T)	((uint32_t)(T) * ((F_CPU / 1000000) / PRESCALE))
-#define SEC5(T)	((uint32_t)(T) * ((F_CPU / 100000) / PRESCALE))
-#define SEC4(T)	((uint32_t)(T) * ((F_CPU / 10000) / PRESCALE))
-#define SEC3(T)	((uint32_t)(T) * ((F_CPU / 1000) / PRESCALE))
-#define SEC2(T)	((uint32_t)(T) * ((F_CPU / 100) / PRESCALE))
-#define SEC1(T)	((uint32_t)(T) * ((F_CPU / 10) / PRESCALE))
-#define SEC0(T)	((uint32_t)(T) * ((F_CPU / 1) / PRESCALE))
-
 /* __BEGIN_DECLS */
 
 void init(uint8_t stack);
@@ -93,7 +85,7 @@ void wait(uint8_t sema);
 void signal(void);
 
 void suspend(void);
-void sleep(uint32_t ticks);
+void sleep(uint32_t sec, uint32_t usec);
 void yield(void);
 
 uint32_t now(void);

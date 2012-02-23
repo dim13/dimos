@@ -33,15 +33,15 @@ heartbeat(void *arg)
 
 	for (;;) {
 		PORTB |= _BV(PIN);
-		sleep(MSEC(100));
+		sleep(0, 100000);
 
 		PORTB &= ~_BV(PIN);
-		sleep(MSEC(50));
+		sleep(0, 50000);
 
 		PORTB |= _BV(PIN);
-		sleep(MSEC(100));
+		sleep(0, 100000);
 
 		PORTB &= ~_BV(PIN);
-		sleep(MSEC(500));
+		sleep(0, 500000);
 	}
 }

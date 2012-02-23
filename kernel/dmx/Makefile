@@ -14,7 +14,8 @@ TASKS=		11	# +1 idle = 12
 BAUD=		9600
 
 PROG=	dmx
-SRCS=	dmx.c heartbeat.c rgb.c hsv.c clock.c lcd3.c uart.c adc.c ppm.c
+SRCS=	dmx.c heartbeat.c rgb.c hsv.c clock.c lcd3.c uart.c adc.c
+#	ppm.c
 NOMAN=
 
 .include <bsd.prog.mk>
