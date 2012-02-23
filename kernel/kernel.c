@@ -42,19 +42,19 @@ struct task {
 	uint32_t release;
 	uint16_t sp;		/* stack pointer */
 	uint8_t state;
-	uint8_t prio;
-	uint8_t sema;
+	uint8_t chan;		/* wait channel */
 	TAILQ_ENTRY(task) link;
 };
 
 struct kernel {
-	TAILQ_HEAD(queue, task) runq[PRIORITIES], timeq, waitq[SEMAPHORES];
+	TAILQ_HEAD(queue, task) runq, timeq, waitq;
 	struct task task[1 + TASKS];
 	struct task *nextfree;
 	struct task *current;
+	uint32_t lastrun;
 	uint16_t cycles;
 	uint8_t *freemem;
-	uint8_t semaphore[SEMAPHORES];
+	uint8_t semaphore;
 } kernel;
 
 ISR(TIMER1_OVF_vect)
@@ -65,88 +65,89 @@ ISR(TIMER1_OVF_vect)
 ISR(TIMER1_COMPA_vect, ISR_NAKED)
 {
 	struct task *tp, *tmp;
-	int32_t dist;
+	int32_t round;
 	uint32_t now;
-	uint16_t nexthit;
-	uint8_t prio;
 
 	PUSH_ALL();
 	now = NOW(kernel.cycles, TCNT1);
+	round = DISTANCE(kernel.lastrun, now);
 
 	#if DEBUG
 	PORTB ^= _BV(PB1);		/* DEBUG */
 	#endif
 
 	kernel.current->sp = SP;
-	TAILQ_REMOVE(&kernel.runq[kernel.current->prio], kernel.current, link);
-
-	nexthit = 0xffff;
+	TAILQ_REMOVE(&kernel.runq, kernel.current, link);
 
 	/* release waiting tasks */
 	TAILQ_FOREACH_SAFE(tp, &kernel.timeq, link, tmp) {
-		dist = DISTANCE(now, tp->release);
-		if (dist <= 0) {
+		if (tp->release <= round) {
 			tp->state = RUNQ;
 			TAILQ_REMOVE(&kernel.timeq, tp, link);
-			TAILQ_INSERT_TAIL(&kernel.runq[tp->prio], tp, link);
-		} else if (dist < nexthit)
-			nexthit = dist;
-		else
-			break;
+			TAILQ_INSERT_TAIL(&kernel.runq, tp, link);
+		} else
+			tp->release -= round;
 	}
 
-again:
 	switch (kernel.current->state) {
 	case RUNQ:
-		TAILQ_INSERT_TAIL(&kernel.runq[kernel.current->prio], kernel.current, link);
+		/* readd current task at the end of run queue */
+		/* idle is always in TERMINATED state and is skipped here */
+		TAILQ_INSERT_TAIL(&kernel.runq, kernel.current, link);
 		break;
 	case TIMEQ:
-		TAILQ_FOREACH(tp, &kernel.timeq, link)
-			if (DISTANCE(kernel.current->release, tp->release) > 0)
+		/* find right position on time queue */
+		TAILQ_FOREACH(tp, &kernel.timeq, link) {
+			if (kernel.current->release < tp->release)
 				break;
-
+		}
 		if (tp)
 			TAILQ_INSERT_BEFORE(tp, kernel.current, link);
 		else
 			TAILQ_INSERT_TAIL(&kernel.timeq, kernel.current, link);
 		break;
 	case WAITQ:
-		if (kernel.semaphore[kernel.current->sema] == 0) {
+		if (kernel.semaphore & _BV(kernel.current->chan)) {
+			/* semaphore busy, go into wait queue */
+			TAILQ_INSERT_TAIL(&kernel.waitq, kernel.current, link);
+		} else {
 			/* occupy semaphore */
-			kernel.semaphore[kernel.current->sema] = 1;
+			kernel.semaphore |= _BV(kernel.current->chan);
+			/* go into the end of run queue again */
 			kernel.current->state = RUNQ;
-			goto again;	/* put current task back on runq */
-		} else
-			TAILQ_INSERT_TAIL(&kernel.waitq[kernel.current->sema], kernel.current, link);
+			TAILQ_INSERT_TAIL(&kernel.runq, kernel.current, link);
+		}
 		break;
 	case SIGNAL:
-		tp = TAILQ_FIRST(&kernel.waitq[kernel.current->sema]);
-		if (tp) {
-			tp->state = RUNQ;
-			TAILQ_REMOVE(&kernel.waitq[kernel.current->sema], tp, link);
-			TAILQ_INSERT_TAIL(&kernel.runq[tp->prio], tp, link);
-			/* occupy semaphore */
-			kernel.semaphore[kernel.current->sema] = 1;
-		} else
-			kernel.semaphore[kernel.current->sema] = 0;
+		/* release waiting tasks from wait queue */
+		TAILQ_FOREACH_SAFE(tp, &kernel.waitq, link, tmp) {
+			if (tp->chan == kernel.current->chan) {
+				TAILQ_REMOVE(&kernel.waitq, tp, link);
+				tp->state = RUNQ;
+				TAILQ_INSERT_TAIL(&kernel.runq, tp, link);
+			}
+		}
 
+		/* clear semaphore */
+		kernel.semaphore &= ~_BV(kernel.current->chan);
+		/* and go back to run queue */
 		kernel.current->state = RUNQ;
-		goto again;		/* put current task back on runq */
+		TAILQ_INSERT_TAIL(&kernel.runq, kernel.current, link);
+		break;
 	default:
 		break;
 	}
 
-	for (prio = 0; prio < PRIORITIES - 1; prio++)
-		if (!TAILQ_EMPTY(&kernel.runq[prio]))
-			break;
+	/* idle if nothing to run */
+	if (TAILQ_EMPTY(&kernel.runq))
+		TAILQ_INSERT_TAIL(&kernel.runq, &kernel.task[0], link);
 
-	if (TAILQ_EMPTY(&kernel.runq[prio]))
-		TAILQ_INSERT_TAIL(&kernel.runq[prio], &kernel.task[0], link);
-
-	kernel.current = TAILQ_FIRST(&kernel.runq[prio]);
+	kernel.current = TAILQ_FIRST(&kernel.runq);
 	SP = kernel.current->sp;
 
-	OCR1A = (uint16_t)(now + nexthit);
+	tp = TAILQ_FIRST(&kernel.timeq);
+	OCR1A = (tp) ? (uint16_t)(now + tp->release) : 0xffff;
+	kernel.lastrun = now;
 
 	POP_ALL();
 	reti();
@@ -155,8 +156,6 @@ again:
 void
 init(uint8_t stack)
 {
-	uint8_t i;
-
 	cli();
 
 	/* Set up timer 1 */
@@ -173,25 +172,24 @@ init(uint8_t stack)
 	memset(&kernel, 0, sizeof(kernel));
 
 
-	for (i = 0; i < PRIORITIES; i++)
-		TAILQ_INIT(&kernel.runq[i]);
+	TAILQ_INIT(&kernel.runq);
 	TAILQ_INIT(&kernel.timeq);
-	for (i = 0; i < SEMAPHORES; i++)
-		TAILQ_INIT(&kernel.waitq[i]);
+	TAILQ_INIT(&kernel.waitq);
 
+	kernel.cycles = 0;
+	kernel.lastrun = NOW(kernel.cycles, TCNT1);
 	kernel.nextfree = &kernel.task[1];
 	kernel.freemem = (void *)(RAMEND - stack);
 	kernel.current = &kernel.task[0];
 	kernel.current->state = TERMINATED;
-	kernel.current->prio = PRIORITIES - 1;
 	kernel.current->release = 0;
-	TAILQ_INSERT_TAIL(&kernel.runq[PRIORITIES - 1], &kernel.task[0], link);
+	TAILQ_INSERT_TAIL(&kernel.runq, &kernel.task[0], link);
 
 	sei();
 }
 
 void
-exec(void (*fun)(void *), void *args, uint8_t stack, uint8_t prio)
+exec(void (*fun)(void *), void *args, uint8_t stack)
 {
 	struct task *t;
 	uint8_t *sp;
@@ -216,8 +214,7 @@ exec(void (*fun)(void *), void *args, uint8_t stack, uint8_t prio)
 
 	t = kernel.nextfree++;
 	t->release = NOW(kernel.cycles, TCNT1);
-	t->prio = prio;
-	t->sema = 0;
+	t->chan = 0;
 	t->sp = (uint16_t)sp;		/* SP */
 	t->state = TIMEQ;
 	TAILQ_INSERT_TAIL(&kernel.timeq, t, link);
@@ -226,18 +223,18 @@ exec(void (*fun)(void *), void *args, uint8_t stack, uint8_t prio)
 }
 
 void
-wait(uint8_t sema)
+wait(uint8_t chan)
 {
 	cli();
 
-	kernel.current->sema = sema;
+	kernel.current->chan = chan;
 	kernel.current->state = WAITQ;
 
 	SCHEDULE();
 }
 
 void
-signal(uint8_t sema)
+signal(void)
 {
 	cli();
 
@@ -251,7 +248,7 @@ sleep(uint32_t ticks)
 {
 	cli();
 
-	kernel.current->release += ticks;
+	kernel.current->release = ticks;
 	kernel.current->state = TIMEQ;
 
 	SCHEDULE();

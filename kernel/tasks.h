@@ -55,7 +55,7 @@ struct pwmarg {
 };
 
 struct adcarg {
-	uint16_t value[ADCCHANNELS];
+	uint8_t value[ADCCHANNELS];
 };
 
 struct clockarg {
@@ -63,7 +63,7 @@ struct clockarg {
 };
 
 struct ppmarg {
-	uint16_t *value;
+	uint8_t *value;
 };
 
 void	uart_init(void);

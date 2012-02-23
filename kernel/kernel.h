@@ -23,16 +23,6 @@
 #define TASKS 8
 #endif
 
-#ifndef PRIORITIES
-#warning PRIORITIES not set, fallback to default: 2
-#define PRIORITIES 2
-#endif
-
-#ifndef SEMAPHORES
-#warning SEMAPHORES not set, fallback to default: 4
-#define SEMAPHORES 4
-#endif
-
 #ifndef STACK
 #warning STACK not set, fallback to default: 64
 #define STACK 64
@@ -97,10 +87,10 @@
 /* __BEGIN_DECLS */
 
 void init(uint8_t stack);
-void exec(void (*fun)(void *), void *args, uint8_t stack, uint8_t prio);
+void exec(void (*fun)(void *), void *args, uint8_t stack);
 
 void wait(uint8_t sema);
-void signal(uint8_t sema);
+void signal(void);
 
 void suspend(void);
 void sleep(uint32_t ticks);

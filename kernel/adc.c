@@ -44,7 +44,7 @@ adc(void *arg)
 		}
 		wait(0);
 		fprintf(stderr, "\n%8lx%8x", now(), a->value[0]);
-		signal(0);
+		signal();
 		sleep(MSEC(100));
 	}
 }
