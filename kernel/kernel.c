@@ -64,7 +64,6 @@ ISR(TIMER1_OVF_vect)
 ISR(TIMER1_COMPA_vect, ISR_NAKED)
 {
 	struct task *tp, *tmp;
-	int32_t dist;
 	uint32_t now;
 
 	PUSH_ALL();
@@ -74,13 +73,13 @@ ISR(TIMER1_COMPA_vect, ISR_NAKED)
 	PORTB ^= _BV(PB1);		/* DEBUG */
 	#endif
 
+	/* store context */
 	kernel.current->sp = SP;
 	TAILQ_REMOVE(&kernel.runq, kernel.current, link);
 
 	/* release waiting tasks */
 	TAILQ_FOREACH_SAFE(tp, &kernel.timeq, link, tmp) {
-		dist = DISTANCE(now, tp->release);
-		if (dist <= 0) {
+		if (DISTANCE(now, tp->release) <= 0) {
 			tp->state = RUNQ;
 			TAILQ_REMOVE(&kernel.timeq, tp, link);
 			TAILQ_INSERT_TAIL(&kernel.runq, tp, link);
@@ -141,12 +140,12 @@ ISR(TIMER1_COMPA_vect, ISR_NAKED)
 	if (TAILQ_EMPTY(&kernel.runq))
 		TAILQ_INSERT_TAIL(&kernel.runq, &kernel.task[0], link);
 
+	/* restore context */
 	kernel.current = TAILQ_FIRST(&kernel.runq);
 	SP = kernel.current->sp;
 
 	tp = TAILQ_FIRST(&kernel.timeq);
-	dist = (tp) ? (now + DISTANCE(now, tp->release)) : 0xffff;
-	OCR1A = (uint16_t)dist;
+	OCR1A = (tp) ? (uint16_t)(now + DISTANCE(now, tp->release)) : 0xffff;
 
 	POP_ALL();
 	reti();
