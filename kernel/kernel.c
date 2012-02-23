@@ -51,7 +51,6 @@ struct kernel {
 	struct task task[1 + TASKS];
 	struct task *nextfree;
 	struct task *current;
-	uint32_t lastrun;
 	uint16_t cycles;
 	uint8_t *freemem;
 	uint8_t semaphore;
@@ -65,12 +64,11 @@ ISR(TIMER1_OVF_vect)
 ISR(TIMER1_COMPA_vect, ISR_NAKED)
 {
 	struct task *tp, *tmp;
-	int32_t round;
+	int32_t dist;
 	uint32_t now;
 
 	PUSH_ALL();
 	now = NOW(kernel.cycles, TCNT1);
-	round = DISTANCE(kernel.lastrun, now);
 
 	#if DEBUG
 	PORTB ^= _BV(PB1);		/* DEBUG */
@@ -81,12 +79,13 @@ ISR(TIMER1_COMPA_vect, ISR_NAKED)
 
 	/* release waiting tasks */
 	TAILQ_FOREACH_SAFE(tp, &kernel.timeq, link, tmp) {
-		if (tp->release <= round) {
+		dist = DISTANCE(now, tp->release);
+		if (dist <= 0) {
 			tp->state = RUNQ;
 			TAILQ_REMOVE(&kernel.timeq, tp, link);
 			TAILQ_INSERT_TAIL(&kernel.runq, tp, link);
 		} else
-			tp->release -= round;
+			break;
 	}
 
 	switch (kernel.current->state) {
@@ -98,7 +97,7 @@ ISR(TIMER1_COMPA_vect, ISR_NAKED)
 	case TIMEQ:
 		/* find right position on time queue */
 		TAILQ_FOREACH(tp, &kernel.timeq, link) {
-			if (kernel.current->release < tp->release)
+			if (DISTANCE(kernel.current->release, tp->release) > 0)
 				break;
 		}
 		if (tp)
@@ -146,8 +145,8 @@ ISR(TIMER1_COMPA_vect, ISR_NAKED)
 	SP = kernel.current->sp;
 
 	tp = TAILQ_FIRST(&kernel.timeq);
-	OCR1A = (tp) ? (uint16_t)(now + tp->release) : 0xffff;
-	kernel.lastrun = now;
+	dist = (tp) ? (now + DISTANCE(now, tp->release)) : 0xffff;
+	OCR1A = (uint16_t)dist;
 
 	POP_ALL();
 	reti();
@@ -177,7 +176,6 @@ init(uint8_t stack)
 	TAILQ_INIT(&kernel.waitq);
 
 	kernel.cycles = 0;
-	kernel.lastrun = NOW(kernel.cycles, TCNT1);
 	kernel.nextfree = &kernel.task[1];
 	kernel.freemem = (void *)(RAMEND - stack);
 	kernel.current = &kernel.task[0];
@@ -244,15 +242,16 @@ signal(void)
 }
 
 void
-sleep(uint32_t ticks)
+sleep(uint32_t sec, uint32_t usec)
 {
 	cli();
 
-	kernel.current->release = ticks;
+	kernel.current->release += SEC(sec) + USEC(usec);
 	kernel.current->state = TIMEQ;
 
 	SCHEDULE();
 }
+
 
 void
 yield(void)

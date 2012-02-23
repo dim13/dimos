@@ -42,7 +42,7 @@ rgb(void *arg)
 		v = *a->v;		/* 10bit to 8bit */
 		sei();
 
-		sleep(MSEC(40));
+		sleep(0, 40000);
 	}
 }
 
@@ -51,28 +51,25 @@ pwm(void *arg)
 {
 	struct pwmarg *a = (struct pwmarg *)arg;
 	uint32_t t;
-	uint8_t v;
 
 	DDRB |= _BV(a->pin);
 	PORTB &= ~_BV(a->pin);
 
-#define DIV	(UINT8_MAX >> 1)
-
 	for (;;) {
 		cli();
-		v = *a->value;
+		t = *a->value;
 		sei();
 
 		/* on */
-		if ((t = SEC2(v) / DIV)) {
+		if (t) {
 			PORTB |= _BV(a->pin);
-			sleep(t);
+			sleep(0, t * 80);
 		}
 
 		/* off */
-		if ((t = SEC2(UINT8_MAX - v) / DIV)) {
+		if ((t = UINT8_MAX - t)) {
 			PORTB &= ~_BV(a->pin);
-			sleep(t);
+			sleep(0, t * 80);
 		}
 	}
 }

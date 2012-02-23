@@ -41,6 +41,6 @@ clock(void *arg)
 		fprintf(stderr, "\r%4d:%.2d:%.2d:%.2d.%1d ", d, h, m, s, ds);
 		signal();
 
-		sleep(SEC1(1));
+		sleep(1, 0);
 	}
 }
