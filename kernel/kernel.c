@@ -144,6 +144,7 @@ ISR(TIMER1_COMPA_vect, ISR_NAKED)
 	kernel.current = TAILQ_FIRST(&kernel.runq);
 	SP = kernel.current->sp;
 
+	/* nexthit */
 	if ((tp = TAILQ_FIRST(&kernel.timeq)))
 		now += DISTANCE(now, tp->release);
 	OCR1A = now;
