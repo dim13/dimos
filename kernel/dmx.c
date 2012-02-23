@@ -24,11 +24,9 @@
 #include "kernel.h"
 #include "tasks.h"
 
-enum { RT, High, Low };
-
 struct adcarg adcarg;
 struct ppmarg ppmarg = { adcarg.value };
-struct rgbarg rgbargs = { 0, 0, 0, &adcarg.value[0] };
+struct rgbarg rgbargs = { 0, 0, 0, adcarg.value };
 struct pwmarg pwmargs[] = {
 	{ &rgbargs.r, PB2, 1 },
 	{ &rgbargs.g, PB3, 2 },
@@ -42,13 +40,13 @@ main()
 	lcd_init();
 	init(48);
 
-	exec(heartbeat, NULL, 48, Low);
-	exec(rgb, &rgbargs, 72, High);
-	exec(pwm, &pwmargs[0], 56, RT);
-	exec(pwm, &pwmargs[1], 56, RT);
-	exec(pwm, &pwmargs[2], 56, RT);
-	exec(adc, &adcarg, 96, Low);	
-	exec(clock, NULL, 96, Low);
+	exec(heartbeat, NULL, 48);
+	exec(rgb, &rgbargs, 72);
+	exec(pwm, &pwmargs[0], 56);
+	exec(pwm, &pwmargs[1], 56);
+	exec(pwm, &pwmargs[2], 56);
+	exec(adc, &adcarg, 96);
+	exec(clock, NULL, 96);
 #if 0
 	exec(cmd, &rgbargs, 48);
 	exec(ppm, &ppmarg, 48);
