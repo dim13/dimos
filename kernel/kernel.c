@@ -54,6 +54,7 @@ struct kernel {
 	uint16_t cycles;
 	uint8_t *freemem;
 	uint8_t semaphore;
+	uint8_t rqlen;
 } kernel;
 
 ISR(TIMER1_OVF_vect)
@@ -76,13 +77,15 @@ ISR(TIMER1_COMPA_vect, ISR_NAKED)
 	/* store context */
 	kernel.current->sp = SP;
 	TAILQ_REMOVE(&kernel.runq, kernel.current, link);
+	--kernel.rqlen;
 
 	/* release waiting tasks */
 	TAILQ_FOREACH_SAFE(tp, &kernel.timeq, link, tmp) {
 		if (DISTANCE(now, tp->release) <= 0) {
-			tp->state = RUNQ;
 			TAILQ_REMOVE(&kernel.timeq, tp, link);
+			tp->state = RUNQ;
 			TAILQ_INSERT_TAIL(&kernel.runq, tp, link);
+			++kernel.rqlen;
 		} else
 			break;
 	}
@@ -92,6 +95,7 @@ ISR(TIMER1_COMPA_vect, ISR_NAKED)
 		/* readd current task at the end of run queue */
 		/* idle is always in TERMINATED state and is skipped here */
 		TAILQ_INSERT_TAIL(&kernel.runq, kernel.current, link);
+		++kernel.rqlen;
 		break;
 	case TIMEQ:
 		/* find right position on time queue */
@@ -114,6 +118,7 @@ ISR(TIMER1_COMPA_vect, ISR_NAKED)
 			/* go into the end of run queue again */
 			kernel.current->state = RUNQ;
 			TAILQ_INSERT_TAIL(&kernel.runq, kernel.current, link);
+			++kernel.rqlen;
 		}
 		break;
 	case SIGNAL:
@@ -123,6 +128,7 @@ ISR(TIMER1_COMPA_vect, ISR_NAKED)
 				TAILQ_REMOVE(&kernel.waitq, tp, link);
 				tp->state = RUNQ;
 				TAILQ_INSERT_TAIL(&kernel.runq, tp, link);
+				++kernel.rqlen;
 			}
 		}
 
@@ -131,14 +137,17 @@ ISR(TIMER1_COMPA_vect, ISR_NAKED)
 		/* and go back to run queue */
 		kernel.current->state = RUNQ;
 		TAILQ_INSERT_TAIL(&kernel.runq, kernel.current, link);
+		++kernel.rqlen;
 		break;
 	default:
 		break;
 	}
 
 	/* idle if nothing to run */
-	if (TAILQ_EMPTY(&kernel.runq))
+	if (TAILQ_EMPTY(&kernel.runq)) {
 		TAILQ_INSERT_TAIL(&kernel.runq, &kernel.task[0], link);
+		++kernel.rqlen;
+	}
 
 	/* restore context */
 	kernel.current = TAILQ_FIRST(&kernel.runq);
@@ -147,7 +156,9 @@ ISR(TIMER1_COMPA_vect, ISR_NAKED)
 	/* nexthit */
 	if ((tp = TAILQ_FIRST(&kernel.timeq)))
 		now += DISTANCE(now, tp->release);
-	OCR1A = now;
+	else
+		now += UINT16_MAX / kernel.rqlen;
+	OCR1A = (uint16_t)now;
 
 	POP_ALL();
 	reti();
@@ -183,6 +194,7 @@ init(uint8_t stack)
 	kernel.current->state = TERMINATED;
 	kernel.current->release = 0;
 	TAILQ_INSERT_TAIL(&kernel.runq, &kernel.task[0], link);
+	kernel.rqlen = 1;
 
 	sei();
 }
@@ -282,4 +294,10 @@ uint8_t
 running(void)
 {
 	return kernel.current - kernel.task;
+}
+
+uint8_t
+load(void)
+{
+	return kernel.rqlen;
 }
