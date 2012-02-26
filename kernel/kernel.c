@@ -66,6 +66,8 @@ ISR(TIMER1_COMPA_vect, ISR_NAKED)
 {
 	struct task *tp, *tmp;
 	uint32_t now;
+	uint16_t nexthit;
+	int32_t dist;
 
 	PUSH_ALL();
 	now = NOW(kernel.cycles, TCNT1);
@@ -96,6 +98,7 @@ ISR(TIMER1_COMPA_vect, ISR_NAKED)
 		/* idle is always in TERMINATED state and is skipped here */
 		TAILQ_INSERT_TAIL(&kernel.runq, kernel.current, link);
 		++kernel.rqlen;
+
 		break;
 	case TIMEQ:
 		/* find right position on time queue */
@@ -103,10 +106,12 @@ ISR(TIMER1_COMPA_vect, ISR_NAKED)
 			if (DISTANCE(kernel.current->release, tp->release) > 0)
 				break;
 		}
+
 		if (tp)
 			TAILQ_INSERT_BEFORE(tp, kernel.current, link);
 		else
 			TAILQ_INSERT_TAIL(&kernel.timeq, kernel.current, link);
+
 		break;
 	case WAITQ:
 		if (kernel.semaphore & _BV(kernel.current->chan)) {
@@ -120,6 +125,7 @@ ISR(TIMER1_COMPA_vect, ISR_NAKED)
 			TAILQ_INSERT_TAIL(&kernel.runq, kernel.current, link);
 			++kernel.rqlen;
 		}
+
 		break;
 	case SIGNAL:
 		/* release waiting tasks from wait queue */
@@ -138,6 +144,7 @@ ISR(TIMER1_COMPA_vect, ISR_NAKED)
 		kernel.current->state = RUNQ;
 		TAILQ_INSERT_TAIL(&kernel.runq, kernel.current, link);
 		++kernel.rqlen;
+
 		break;
 	default:
 		break;
@@ -153,12 +160,15 @@ ISR(TIMER1_COMPA_vect, ISR_NAKED)
 	kernel.current = TAILQ_FIRST(&kernel.runq);
 	SP = kernel.current->sp;
 
-	/* nexthit */
-	if ((tp = TAILQ_FIRST(&kernel.timeq)))
-		now += DISTANCE(now, tp->release);
-	else
-		now += UINT16_MAX / kernel.rqlen;
-	OCR1A = (uint16_t)now;
+	nexthit = UINT16_MAX >> kernel.rqlen;
+
+	if ((tp = TAILQ_FIRST(&kernel.timeq))) {
+		dist = DISTANCE(now, tp->release);
+		if (dist < nexthit)
+			nexthit = dist;
+	}
+
+	OCR1A = (uint16_t)(now + nexthit);
 
 	POP_ALL();
 	reti();
@@ -181,7 +191,6 @@ init(uint8_t stack)
 	#endif
 
 	memset(&kernel, 0, sizeof(kernel));
-
 
 	TAILQ_INIT(&kernel.runq);
 	TAILQ_INIT(&kernel.timeq);
@@ -265,19 +274,12 @@ sleep(uint32_t sec, uint32_t usec)
 	SCHEDULE();
 }
 
-
 void
 yield(void)
 {
 	cli();
 
 	SCHEDULE();
-}
-
-uint32_t
-now(void)
-{
-	return NOW(kernel.cycles, TCNT1);
 }
 
 void
@@ -290,14 +292,14 @@ suspend(void)
 	SCHEDULE();
 }
 
+uint32_t
+now(void)
+{
+	return NOW(kernel.cycles, TCNT1);
+}
+
 uint8_t
 running(void)
 {
 	return kernel.current - kernel.task;
-}
-
-uint8_t
-load(void)
-{
-	return kernel.rqlen;
 }

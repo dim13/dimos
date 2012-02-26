@@ -90,7 +90,6 @@ void yield(void);
 
 uint32_t now(void);
 uint8_t running(void);
-uint8_t load(void);
 
 /* __END_DECLS */
 
