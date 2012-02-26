@@ -33,9 +33,6 @@
 
 FILE uart_stream = FDEV_SETUP_STREAM(uart_putchar, uart_getchar, _FDEV_SETUP_RW);
 
-enum { Tasks, Load };
-uint8_t udrie_flag = Tasks;
-
 #ifdef USE_RXCIE
 ISR(SIG_UART_RECV)
 {
@@ -56,14 +53,8 @@ ISR(SIG_UART_RECV)
 		break;
 	case 'T':
 		UCSRB |= _BV(UDRIE);
-		udrie_flag = Tasks;
-		break;
-	case 'L':
-		UCSRB |= _BV(UDRIE);
-		udrie_flag = Load;
 		break;
 	case 't':
-	case 'l':
 		UCSRB &= ~_BV(UDRIE);
 		break;
 	case '\r':
@@ -77,16 +68,7 @@ ISR(SIG_UART_RECV)
 
 ISR(SIG_UART_DATA)
 {
-	uint8_t r = 0;
-
-	switch (udrie_flag) {
-	case Tasks:
-		r = running();
-		break;
-	case Load:
-		r = load();
-		break;
-	}
+	uint8_t r = running();
 
 	UDR = r ? '0' + r : '.';
 }
