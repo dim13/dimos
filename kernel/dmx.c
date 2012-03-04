@@ -41,10 +41,10 @@ main()
 	init(48);
 
 	exec(heartbeat, NULL, 48);
-	exec(rgb, &rgbargs, 72);
-	exec(pwm, &pwmargs[0], 56);
-	exec(pwm, &pwmargs[1], 56);
-	exec(pwm, &pwmargs[2], 56);
+	exec(rgb, &rgbargs, 66);
+	exec(pwm, &pwmargs[0], 60);
+	exec(pwm, &pwmargs[1], 60);
+	exec(pwm, &pwmargs[2], 60);
 	exec(adc, &adcarg, 96);
 	exec(clock, NULL, 96);
 #if 0
