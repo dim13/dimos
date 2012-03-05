@@ -47,7 +47,7 @@ struct task {
 struct kernel {
 	TAILQ_HEAD(queue, task) runq, timeq, waitq[SEMAPHORES];
 	struct task idle[1 + TASKS];
-	struct task *nextfree;
+	struct task *last;
 	struct task *current;
 	uint16_t cycles;
 	uint8_t *freemem;
@@ -139,19 +139,19 @@ init(uint8_t stack)
 	DDRB |= _BV(PB1);		/* DEBUG */
 	#endif
 
-	memset(&kernel, 0, sizeof(kernel));
-
 	TAILQ_INIT(&kernel.runq);
 	TAILQ_INIT(&kernel.timeq);
 	for (i = 0; i < SEMAPHORES; i++)
 		TAILQ_INIT(&kernel.waitq[i]);
 
-	kernel.cycles = 0;
-	kernel.nextfree = kernel.idle + 1;
-	kernel.freemem = (void *)(RAMEND - stack);
 	kernel.idle->release = 0;
+	kernel.idle->sp = SP;			/* XXX not needed at all */
 	TAILQ_INSERT_TAIL(&kernel.runq, kernel.idle, r_link);
 	kernel.current = TAILQ_FIRST(&kernel.runq);
+	kernel.last = kernel.idle;
+
+	kernel.cycles = 0;
+	kernel.freemem = (uint8_t *)(RAMEND - stack);
 	kernel.semaphore = 0;
 	kernel.rqlen = 0;
 
@@ -167,7 +167,7 @@ exec(void (*fun)(void *), void *args, uint8_t stack)
 	cli();
 
 	sp = kernel.freemem;
-	kernel.freemem -= stack;
+	kernel.freemem -= stack + 2;	/* +PC */
 
 	/* initialize stack */
 	*sp-- = LO8(fun);		/* PC(lo) */
@@ -182,7 +182,7 @@ exec(void (*fun)(void *), void *args, uint8_t stack)
 	sp -= 6;
 	memset(sp, 0, 6);		/* r26-r31 */
 
-	tp = kernel.nextfree++;
+	tp = ++kernel.last;
 	tp->release = 0;
 	tp->sp = (uint16_t)sp;		/* SP */
 	TAILQ_INSERT_TAIL(&kernel.runq, tp, r_link);
