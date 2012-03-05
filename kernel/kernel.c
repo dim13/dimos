@@ -108,8 +108,6 @@ ISR(TIMER1_COMPA_vect, ISR_NAKED)
 			nexthit = dist;
 	}
 
-	nexthit >>= kernel.rqlen;
-
 	OCR1A = (uint16_t)(now + nexthit);
 
 	/* switch context */
