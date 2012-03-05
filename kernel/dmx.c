@@ -40,7 +40,7 @@ main()
 	lcd_init();
 	init(48);
 
-	exec(heartbeat, NULL, 48);
+	exec(heartbeat, NULL, 56);
 	exec(rgb, &rgbargs, 72);
 	exec(pwm, &pwmargs[0], 64);
 	exec(pwm, &pwmargs[1], 64);

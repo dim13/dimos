@@ -100,13 +100,15 @@ ISR(TIMER1_COMPA_vect, ISR_NAKED)
 		++kernel.rqlen;
 	}
 
-	nexthit = UINT16_MAX >> kernel.rqlen;
+	nexthit = UINT16_MAX;
 
 	if ((tp = TAILQ_FIRST(&kernel.timeq))) {
 		dist = DISTANCE(now, tp->release);
 		if (dist < nexthit)
 			nexthit = dist;
 	}
+
+	nexthit >>= kernel.rqlen;
 
 	OCR1A = (uint16_t)(now + nexthit);
 
@@ -150,6 +152,7 @@ init(uint8_t stack)
 	kernel.idle->release = 0;
 	TAILQ_INSERT_TAIL(&kernel.runq, kernel.idle, r_link);
 	kernel.current = TAILQ_FIRST(&kernel.runq);
+	kernel.semaphore = 0;
 	kernel.rqlen = 0;
 
 	sei();
