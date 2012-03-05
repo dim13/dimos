@@ -53,6 +53,7 @@ struct kernel {
 	uint16_t cycles;
 	uint8_t *freemem;
 	uint8_t semaphore;
+	uint8_t rqlen;
 } kernel;
 
 ISR(TIMER1_OVF_vect)
@@ -74,32 +75,41 @@ ISR(TIMER1_COMPA_vect, ISR_NAKED)
 	PORTB ^= _BV(PB1);		/* DEBUG */
 	#endif
 
-	if (kernel.current == TAILQ_FIRST(&kernel.runq)) {
+	if (kernel.current == kernel.idle) {
+		/* drop idle */
 		TAILQ_REMOVE(&kernel.runq, kernel.current, r_link);
-		if (kernel.current != kernel.idle)
-			TAILQ_INSERT_TAIL(&kernel.timeq, kernel.current, t_link);
+		--kernel.rqlen;
+	} else if (kernel.current == TAILQ_FIRST(&kernel.runq)) {
+		/* runq not changed && not empty -> yield */
+		TAILQ_REMOVE(&kernel.runq, kernel.current, r_link);
+		TAILQ_INSERT_TAIL(&kernel.runq, kernel.current, r_link);
 	}
 
 	/* release waiting tasks */
 	TAILQ_FOREACH_SAFE(tp, &kernel.timeq, t_link, tmp) {
-		if (DISTANCE(now, tp->release) <= 0) {
+		if (DISTANCE(tp->release, now) >= 0) {
 			TAILQ_REMOVE(&kernel.timeq, tp, t_link);
 			TAILQ_INSERT_TAIL(&kernel.runq, tp, r_link);
+			++kernel.rqlen;
 		} else
 			break;
 	}
 
 	/* idle if nothing to run */
-	if (TAILQ_EMPTY(&kernel.runq))
+	if (TAILQ_EMPTY(&kernel.runq)) {
 		TAILQ_INSERT_TAIL(&kernel.runq, kernel.idle, r_link);
+		++kernel.rqlen;
+	}
 
-	nexthit = UINT16_MAX;
+	nexthit = UINT16_MAX >> kernel.rqlen;
 
 	if ((tp = TAILQ_FIRST(&kernel.timeq))) {
 		dist = DISTANCE(now, tp->release);
 		if (dist < nexthit)
 			nexthit = dist;
 	}
+
+	nexthit >>= kernel.rqlen;
 
 	OCR1A = (uint16_t)(now + nexthit);
 
@@ -140,6 +150,7 @@ init(uint8_t stack)
 	kernel.idle->release = 0;
 	TAILQ_INSERT_TAIL(&kernel.runq, kernel.idle, r_link);
 	kernel.current = TAILQ_FIRST(&kernel.runq);
+	kernel.rqlen = 0;
 
 	sei();
 }
@@ -173,6 +184,7 @@ exec(void (*fun)(void *), void *args, uint8_t stack)
 	tp->chan = 0;
 	tp->sp = (uint16_t)sp;		/* SP */
 	TAILQ_INSERT_TAIL(&kernel.runq, tp, r_link);
+	++kernel.rqlen;
 
 	SCHEDULE();
 }
@@ -182,41 +194,41 @@ wait(uint8_t chan)
 {
 	cli();
 
-	TAILQ_REMOVE(&kernel.runq, kernel.current, r_link);
 	kernel.current->chan = chan;
 
-	if (kernel.semaphore & _BV(kernel.current->chan)) {
+	if (kernel.semaphore & _BV(chan)) {
 		/* semaphore busy, go into wait queue */
+		TAILQ_REMOVE(&kernel.runq, kernel.current, r_link);
+		--kernel.rqlen;
 		TAILQ_INSERT_TAIL(&kernel.waitq, kernel.current, w_link);
+
+		SCHEDULE();
 	} else {
 		/* occupy semaphore */
-		kernel.semaphore |= _BV(kernel.current->chan);
-		TAILQ_INSERT_TAIL(&kernel.runq, kernel.current, r_link);
-	}
+		kernel.semaphore |= _BV(chan);
 
-	SCHEDULE();
+		sei();
+	}
 }
 
 void
-signal(void)
+signal(uint8_t chan)
 {
 	struct task *tp, *tmp;
 
 	cli();
 
-	TAILQ_REMOVE(&kernel.runq, kernel.current, r_link);
-
 	/* release waiting tasks from wait queue */
 	TAILQ_FOREACH_SAFE(tp, &kernel.waitq, w_link, tmp) {
-		if (tp->chan == kernel.current->chan) {
+		if (tp->chan == chan) {
 			TAILQ_REMOVE(&kernel.waitq, tp, w_link);
 			TAILQ_INSERT_TAIL(&kernel.runq, tp, r_link);
+			++kernel.rqlen;
 		}
 	}
 
-	/* clear semaphore, and go back to run queue */
-	kernel.semaphore &= ~_BV(kernel.current->chan);
-	TAILQ_INSERT_TAIL(&kernel.runq, kernel.current, r_link);
+	/* clear semaphore */
+	kernel.semaphore &= ~_BV(chan);
 
 	SCHEDULE();
 }
@@ -229,6 +241,7 @@ sleep(uint32_t sec, uint32_t usec)
 	cli();
 
 	TAILQ_REMOVE(&kernel.runq, kernel.current, r_link);
+	--kernel.rqlen;
 	kernel.current->release += SEC(sec) + USEC(usec);
 
 	/* find right position on time queue */
@@ -249,9 +262,6 @@ yield(void)
 {
 	cli();
 
-	TAILQ_REMOVE(&kernel.runq, kernel.current, r_link);
-	TAILQ_INSERT_TAIL(&kernel.timeq, kernel.current, t_link);
-
 	SCHEDULE();
 }
 
@@ -261,6 +271,7 @@ suspend(void)
 	cli();
 
 	TAILQ_REMOVE(&kernel.runq, kernel.current, r_link);
+	--kernel.rqlen;
 
 	SCHEDULE();
 }
