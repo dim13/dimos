@@ -75,16 +75,6 @@ ISR(TIMER1_COMPA_vect, ISR_NAKED)
 	PORTB ^= _BV(PB1);		/* DEBUG */
 	#endif
 
-	if (kernel.current == kernel.idle) {
-		/* drop idle */
-		TAILQ_REMOVE(&kernel.runq, kernel.current, r_link);
-		--kernel.rqlen;
-	} else if (kernel.current == TAILQ_FIRST(&kernel.runq)) {
-		/* runq not changed && not empty -> yield */
-		TAILQ_REMOVE(&kernel.runq, kernel.current, r_link);
-		TAILQ_INSERT_TAIL(&kernel.runq, kernel.current, r_link);
-	}
-
 	/* release waiting tasks */
 	TAILQ_FOREACH_SAFE(tp, &kernel.timeq, t_link, tmp) {
 		if (DISTANCE(tp->release, now) >= 0) {
@@ -93,6 +83,16 @@ ISR(TIMER1_COMPA_vect, ISR_NAKED)
 			++kernel.rqlen;
 		} else
 			break;
+	}
+
+	if (kernel.current == kernel.idle) {
+		/* drop idle */
+		TAILQ_REMOVE(&kernel.runq, kernel.current, r_link);
+		--kernel.rqlen;
+	} else if (kernel.current == TAILQ_FIRST(&kernel.runq)) {
+		/* runq not changed && not empty -> yield */
+		TAILQ_REMOVE(&kernel.runq, kernel.current, r_link);
+		TAILQ_INSERT_TAIL(&kernel.runq, kernel.current, r_link);
 	}
 
 	/* idle if nothing to run */
@@ -286,4 +286,16 @@ uint8_t
 running(void)
 {
 	return kernel.current - kernel.idle;
+}
+
+uint8_t
+rqlen(void)
+{
+	return kernel.rqlen;
+}
+
+uint8_t
+semaphore(void)
+{
+	return kernel.semaphore;
 }

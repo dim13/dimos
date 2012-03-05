@@ -63,13 +63,13 @@ pwm(void *arg)
 		/* on */
 		if (t) {
 			PORTB |= _BV(a->pin);
-			sleep(0, t * 80);
+			sleep(0, t * 40L);
 		}
 
 		/* off */
 		if ((t = UINT8_MAX - t)) {
 			PORTB &= ~_BV(a->pin);
-			sleep(0, t * 80);
+			sleep(0, t * 40L);
 		}
 	}
 }

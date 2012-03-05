@@ -33,6 +33,8 @@
 
 FILE uart_stream = FDEV_SETUP_STREAM(uart_putchar, uart_getchar, _FDEV_SETUP_RW);
 
+uint8_t (*data)(void);
+
 #ifdef USE_RXCIE
 ISR(SIG_UART_RECV)
 {
@@ -51,10 +53,21 @@ ISR(SIG_UART_RECV)
 		for (p = (uint8_t *)0; p <= (uint8_t *)RAMEND; p++)
 			uart_putchar(*p, NULL);
 		break;
-	case 'T':
+	case 'L':
+		data = rqlen;
 		UCSRB |= _BV(UDRIE);
 		break;
+	case 'T':
+		data = running;
+		UCSRB |= _BV(UDRIE);
+		break;
+	case 'S':
+		data = semaphore;
+		UCSRB |= _BV(UDRIE);
+		break;
+	case 'l':
 	case 't':
+	case 's':
 		UCSRB &= ~_BV(UDRIE);
 		break;
 	case '\r':
@@ -68,7 +81,7 @@ ISR(SIG_UART_RECV)
 
 ISR(SIG_UART_DATA)
 {
-	uint8_t r = running();
+	uint8_t r = data();
 
 	UDR = r ? '0' + r : '.';
 }
