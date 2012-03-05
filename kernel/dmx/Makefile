@@ -11,6 +11,7 @@ PRESCALE=	8	# res 0.5usec	cycle 32.7msec
 #STACK=		48
 STACK=		80
 TASKS=		11	# +1 idle = 12
+SEMAPHORES=	2
 BAUD=		9600
 
 PROG=	dmx

@@ -23,6 +23,11 @@
 #define TASKS 8
 #endif
 
+#ifndef SEMAPHORES
+#warning SEMAPHORES not set, fallback to default: 4
+#define SEMAPHORES 4
+#endif
+
 #ifndef STACK
 #warning STACK not set, fallback to default: 64
 #define STACK 64
