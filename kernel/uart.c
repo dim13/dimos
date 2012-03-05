@@ -43,7 +43,7 @@ ISR(SIG_UART_RECV)
 	switch ((c = UDR)) {
 	case 'Z':	/* zero */
 		for (p = (uint8_t *)RAMSTART; p <= (uint8_t *)RAMEND; p++)
-			*p = 'A';
+			*p = 0;
 		/* FALLTHROUGH */
 	case 'R':	/* reboot */
 	case '-':	/* reboot */
