@@ -41,12 +41,11 @@ enum State { TERMINATED, RUNQ, TIMEQ, WAITQ, SIGNAL };
 struct task {
 	uint32_t release;
 	uint16_t sp;		/* stack pointer */
-	uint8_t chan;		/* wait channel */
 	TAILQ_ENTRY(task) r_link, t_link, w_link;
 };
 
 struct kernel {
-	TAILQ_HEAD(queue, task) runq, timeq, waitq;
+	TAILQ_HEAD(queue, task) runq, timeq, waitq[SEMAPHORES];
 	struct task idle[1 + TASKS];
 	struct task *nextfree;
 	struct task *current;
@@ -125,6 +124,8 @@ ISR(TIMER1_COMPA_vect, ISR_NAKED)
 void
 init(uint8_t stack)
 {
+	uint8_t i;
+
 	cli();
 
 	/* Set up timer 1 */
@@ -142,7 +143,8 @@ init(uint8_t stack)
 
 	TAILQ_INIT(&kernel.runq);
 	TAILQ_INIT(&kernel.timeq);
-	TAILQ_INIT(&kernel.waitq);
+	for (i = 0; i < SEMAPHORES; i++)
+		TAILQ_INIT(&kernel.waitq[i]);
 
 	kernel.cycles = 0;
 	kernel.nextfree = kernel.idle + 1;
@@ -181,7 +183,6 @@ exec(void (*fun)(void *), void *args, uint8_t stack)
 
 	tp = kernel.nextfree++;
 	tp->release = 0;
-	tp->chan = 0;
 	tp->sp = (uint16_t)sp;		/* SP */
 	TAILQ_INSERT_TAIL(&kernel.runq, tp, r_link);
 	++kernel.rqlen;
@@ -194,13 +195,11 @@ wait(uint8_t chan)
 {
 	cli();
 
-	kernel.current->chan = chan;
-
 	if (kernel.semaphore & _BV(chan)) {
 		/* semaphore busy, go into wait queue */
 		TAILQ_REMOVE(&kernel.runq, kernel.current, r_link);
 		--kernel.rqlen;
-		TAILQ_INSERT_TAIL(&kernel.waitq, kernel.current, w_link);
+		TAILQ_INSERT_TAIL(&kernel.waitq[chan], kernel.current, w_link);
 
 		SCHEDULE();
 	} else {
@@ -214,21 +213,20 @@ wait(uint8_t chan)
 void
 signal(uint8_t chan)
 {
-	struct task *tp, *tmp;
+	struct task *tp;
 
 	cli();
 
 	/* release waiting tasks from wait queue */
-	TAILQ_FOREACH_SAFE(tp, &kernel.waitq, w_link, tmp) {
-		if (tp->chan == chan) {
-			TAILQ_REMOVE(&kernel.waitq, tp, w_link);
-			TAILQ_INSERT_TAIL(&kernel.runq, tp, r_link);
-			++kernel.rqlen;
-		}
+	if ((tp = TAILQ_FIRST(&kernel.waitq[chan]))) {
+		TAILQ_REMOVE(&kernel.waitq[chan], tp, w_link);
+		TAILQ_INSERT_TAIL(&kernel.runq, tp, r_link);
+		++kernel.rqlen;
 	}
 
 	/* clear semaphore */
-	kernel.semaphore &= ~_BV(chan);
+	if (TAILQ_EMPTY(&kernel.waitq[chan]))
+		kernel.semaphore &= ~_BV(chan);
 
 	SCHEDULE();
 }
