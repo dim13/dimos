@@ -24,15 +24,28 @@
 void
 ctrl(void *arg)
 {
-	struct ctrlarg *a = arg;
+	int c;
 
 	for (;;) {
-		sprintf(a->lcd->first, "%8lx", now());
-		sprintf(a->lcd->second, "%4d:%.2d:%.2d:%.2d",
-			a->clock->d,
-			a->clock->h,
-			a->clock->m,
-			a->clock->s);
-		sleep(MSEC(500));
+		c = fgetc(stdin);
+
+		switch (c) {
+		case '-':
+			reboot();
+			break;
+		case 'n':
+			fprintf(stdout, "\r%ld\n", now());
+			break;
+		case 'r':
+			fprintf(stdout, "\r%d\n", rqlen());
+			break;
+		case 't':
+			fprintf(stdout, "\r%d\n", running());
+			break;
+		default:
+			break;
+		}
+
+		yield();
 	}
 }

@@ -48,6 +48,7 @@ main()
 	exec(adc, &adcarg, 96);
 	exec(clock, NULL, 96);
 #if 0
+	exec(ctrl, NULL, 96);
 	exec(cmd, &rgbargs, 48);
 	exec(ppm, &ppmarg, 48);
 #endif

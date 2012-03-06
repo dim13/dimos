@@ -23,6 +23,7 @@
 #include <string.h>
 #include <avr/io.h>
 #include <avr/interrupt.h>
+#include <avr/wdt.h>
 #include "kernel.h"
 #include "stack.h"
 #include "queue.h"
@@ -297,4 +298,10 @@ uint8_t
 semaphore(void)
 {
 	return kernel.semaphore;
+}
+
+void
+reboot(void)
+{
+	wdt_enable(WDTO_15MS);
 }
