@@ -80,5 +80,6 @@ void	adc(void *);
 void	ppm(void *);
 void	cmd(void *);
 void	clock(void *);
+void	ctrl(void *);
 
 #endif

@@ -16,7 +16,7 @@ BAUD=		9600
 
 PROG=	dmx
 SRCS=	dmx.c heartbeat.c rgb.c hsv.c clock.c lcd3.c uart.c adc.c
-#	ppm.c
+#	ppm.c ctrl.c
 NOMAN=
 
 .include <bsd.prog.mk>
