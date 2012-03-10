@@ -207,7 +207,6 @@ wait(uint8_t chan)
 	} else {
 		/* occupy semaphore */
 		kernel.semaphore |= _BV(chan);
-
 		sei();
 	}
 }
@@ -219,18 +218,18 @@ signal(uint8_t chan)
 
 	cli();
 
-	/* release waiting tasks from wait queue */
 	if ((tp = TAILQ_FIRST(&kernel.waitq[chan]))) {
+		/* release first waiting task from wait queue */
 		TAILQ_REMOVE(&kernel.waitq[chan], tp, w_link);
 		TAILQ_INSERT_TAIL(&kernel.runq, tp, r_link);
 		++kernel.rqlen;
-	}
 
-	/* clear semaphore */
-	if (TAILQ_EMPTY(&kernel.waitq[chan]))
+		SCHEDULE();
+	} else {
+		/* clear semaphore */
 		kernel.semaphore &= ~_BV(chan);
-
-	SCHEDULE();
+		sei();
+	}
 }
 
 void
