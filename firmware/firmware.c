@@ -16,8 +16,8 @@
  */
 
 #include <avr/io.h>
-#include <util/setbaud.h>	/* depends on BAUD & F_CPU env vars */
 #include <avr/boot.h>
+#include <util/setbaud.h>	/* depends on BAUD & F_CPU env vars */
 
 #define TIMEOUT (F_CPU / PRESCALE)	/* 1 sec */
 #define PUTCH(c) do { loop_until_bit_is_set(UCSRA, UDRE); UDR = (c); } while (0)
@@ -94,7 +94,7 @@ main(void)
 reboot:
 	boot_rww_enable();
 
-	((void(*)(void))0)();	/* jump to app */
+	((void(*)(void))0)();
 	/* NOTREACHED */
 
 	return 0;

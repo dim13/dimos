@@ -16,7 +16,7 @@ OBJCOPY=	avr-objcopy
 OBJDUMP=	avr-objdump
 SIZE=		avr-size
 
-CFLAGS=		-Wall -Os -mmcu=${MCU_TARGET} \
+CFLAGS=		-mmcu=${MCU_TARGET} -Wall -Os \
 		-DF_CPU=${F_CPU} -DPRESCALE=${PRESCALE} -DBAUD=${BAUD}
 LDFLAGS=	-mmcu=${MCU_TARGET} \
 		-Wl,-Map,${PROG}.map,--section-start=.text=${ORG}
