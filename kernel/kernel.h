@@ -95,8 +95,6 @@ void yield(void);
 
 uint32_t now(void);
 uint8_t running(void);
-uint8_t rqlen(void);
-uint8_t semaphore(void);
 
 void reboot(void);
 

@@ -28,8 +28,6 @@
 #include "stack.h"
 #include "queue.h"
 
-#define DEBUG	0
-
 enum State { TERMINATED, RUNQ, TIMEQ, WAITQ, SIGNAL };
 
 #define LO8(x)			((uint8_t)((uint16_t)(x)))
@@ -53,7 +51,6 @@ struct kernel {
 	uint16_t cycles;
 	uint8_t *freemem;
 	uint8_t semaphore;
-	uint8_t rqlen;
 } kernel;
 
 ISR(TIMER1_OVF_vect)
@@ -71,45 +68,36 @@ ISR(TIMER1_COMPA_vect, ISR_NAKED)
 	PUSH_ALL();
 	now = NOW(kernel.cycles, TCNT1);
 
-	#if DEBUG
-	PORTB ^= _BV(PB1);		/* DEBUG */
-	#endif
-
 	/* release waiting tasks */
 	TAILQ_FOREACH_SAFE(tp, &kernel.timeq, t_link, tmp) {
 		if (DISTANCE(tp->release, now) >= 0) {
 			TAILQ_REMOVE(&kernel.timeq, tp, t_link);
 			TAILQ_INSERT_TAIL(&kernel.runq, tp, r_link);
-			++kernel.rqlen;
 		} else
 			break;
 	}
 
-	if (kernel.current == kernel.idle) {
-		/* drop idle */
+	/* drop idle */
+	if (kernel.current == kernel.idle)
 		TAILQ_REMOVE(&kernel.runq, kernel.current, r_link);
-		--kernel.rqlen;
-	} else if (kernel.current == TAILQ_FIRST(&kernel.runq)) {
-		/* runq not changed && not empty -> yield */
+
+	/* runq not changed && not empty -> yield */
+	if (kernel.current == TAILQ_FIRST(&kernel.runq)) {
 		TAILQ_REMOVE(&kernel.runq, kernel.current, r_link);
 		TAILQ_INSERT_TAIL(&kernel.runq, kernel.current, r_link);
 	}
 
-	/* idle if nothing to run */
-	if (TAILQ_EMPTY(&kernel.runq)) {
+	/* go idle if nothing to do */
+	if (TAILQ_EMPTY(&kernel.runq))
 		TAILQ_INSERT_TAIL(&kernel.runq, kernel.idle, r_link);
-		++kernel.rqlen;
-	}
 
-	nexthit = UINT16_MAX;
+	nexthit = INT16_MAX;		/* max time slice */
 
 	if ((tp = TAILQ_FIRST(&kernel.timeq))) {
 		dist = DISTANCE(now, tp->release);
 		if (dist < nexthit)
 			nexthit = dist;
 	}
-
-	nexthit >>= kernel.rqlen;
 
 	OCR1A = (uint16_t)(now + nexthit);
 
@@ -136,10 +124,6 @@ init(uint8_t stack)
 	TIMSK = (_BV(OCIE1A) | _BV(TOIE1));	/* enable interrupts */
 	OCR1A = 0;				/* default overflow */
 
-	#if DEBUG
-	DDRB |= _BV(PB1);		/* DEBUG */
-	#endif
-
 	TAILQ_INIT(&kernel.runq);
 	TAILQ_INIT(&kernel.timeq);
 	for (i = 0; i < SEMAPHORES; i++)
@@ -154,7 +138,6 @@ init(uint8_t stack)
 	kernel.cycles = 0;
 	kernel.freemem = (uint8_t *)(RAMEND - stack);
 	kernel.semaphore = 0;
-	kernel.rqlen = 0;
 
 	sei();
 }
@@ -187,7 +170,6 @@ exec(void (*fun)(void *), void *args, uint8_t stack)
 	tp->release = 0;
 	tp->sp = (uint16_t)sp;		/* SP */
 	TAILQ_INSERT_TAIL(&kernel.runq, tp, r_link);
-	++kernel.rqlen;
 
 	SCHEDULE();
 }
@@ -200,12 +182,10 @@ wait(uint8_t chan)
 	if (kernel.semaphore & _BV(chan)) {
 		/* semaphore busy, go into wait queue */
 		TAILQ_REMOVE(&kernel.runq, kernel.current, r_link);
-		--kernel.rqlen;
 		TAILQ_INSERT_TAIL(&kernel.waitq[chan], kernel.current, w_link);
-
 		SCHEDULE();
 	} else {
-		/* occupy semaphore */
+		/* occupy semaphore and continue */
 		kernel.semaphore |= _BV(chan);
 		sei();
 	}
@@ -222,11 +202,9 @@ signal(uint8_t chan)
 		/* release first waiting task from wait queue */
 		TAILQ_REMOVE(&kernel.waitq[chan], tp, w_link);
 		TAILQ_INSERT_TAIL(&kernel.runq, tp, r_link);
-		++kernel.rqlen;
-
 		SCHEDULE();
 	} else {
-		/* clear semaphore */
+		/* clear semaphore and continue */
 		kernel.semaphore &= ~_BV(chan);
 		sei();
 	}
@@ -240,7 +218,6 @@ sleep(uint32_t sec, uint32_t usec)
 	cli();
 
 	TAILQ_REMOVE(&kernel.runq, kernel.current, r_link);
-	--kernel.rqlen;
 	kernel.current->release += SEC(sec) + USEC(usec);
 
 	/* find right position on time queue */
@@ -270,7 +247,6 @@ suspend(void)
 	cli();
 
 	TAILQ_REMOVE(&kernel.runq, kernel.current, r_link);
-	--kernel.rqlen;
 
 	SCHEDULE();
 }
@@ -285,18 +261,6 @@ uint8_t
 running(void)
 {
 	return kernel.current - kernel.idle;
-}
-
-uint8_t
-rqlen(void)
-{
-	return kernel.rqlen;
-}
-
-uint8_t
-semaphore(void)
-{
-	return kernel.semaphore;
 }
 
 void

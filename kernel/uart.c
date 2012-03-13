@@ -25,15 +25,12 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <avr/io.h>
-#include <avr/wdt.h>
 #include <avr/interrupt.h>
 #include <util/setbaud.h>
 #include "kernel.h"
 #include "tasks.h"
 
 FILE uart_stream = FDEV_SETUP_STREAM(uart_putchar, uart_getchar, _FDEV_SETUP_RW);
-
-uint8_t (*data)(void);
 
 #ifdef USE_RXCIE
 ISR(SIG_UART_RECV)
@@ -47,27 +44,16 @@ ISR(SIG_UART_RECV)
 		/* FALLTHROUGH */
 	case 'R':	/* reboot */
 	case '-':	/* reboot */
-		wdt_enable(WDTO_15MS);
+		reboot();
 		break;
 	case 'D':	/* dump */
 		for (p = (uint8_t *)0; p <= (uint8_t *)RAMEND; p++)
 			uart_putchar(*p, NULL);
 		break;
-	case 'L':
-		data = rqlen;
-		UCSRB |= _BV(UDRIE);
-		break;
 	case 'T':
-		data = running;
 		UCSRB |= _BV(UDRIE);
 		break;
-	case 'S':
-		data = semaphore;
-		UCSRB |= _BV(UDRIE);
-		break;
-	case 'l':
 	case 't':
-	case 's':
 		UCSRB &= ~_BV(UDRIE);
 		break;
 	case '\r':
@@ -81,7 +67,7 @@ ISR(SIG_UART_RECV)
 
 ISR(SIG_UART_DATA)
 {
-	uint8_t r = data();
+	uint8_t r = running();
 
 	UDR = r ? '0' + r : '.';
 }
