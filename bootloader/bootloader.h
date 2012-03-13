@@ -20,6 +20,7 @@
 
 #define PAGESIZE	64
 #define	PAGENUM		128
+#define	RAMSTART	0x60
 #define	RAMEND		0x45F
 
 struct page {
