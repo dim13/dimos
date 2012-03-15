@@ -27,20 +27,17 @@ ctrl(void *arg)
 	int c;
 
 	for (;;) {
-		c = fgetc(stdin);
+		printf("> ");
+		fflush(stdout);
+		c = getc(stdin);
+		printf("\n");
 
 		switch (c) {
 		case '-':
 			reboot();
 			break;
 		case 'n':
-			fprintf(stdout, "\r%ld\n", now());
-			break;
-		case 'r':
-			fprintf(stdout, "\r%d\n", rqlen());
-			break;
-		case 't':
-			fprintf(stdout, "\r%d\n", running());
+			printf("now: %ld\n", now());
 			break;
 		default:
 			break;

@@ -20,7 +20,7 @@
 #define BAUD	9600
 #endif
 
-#define USE_RXCIE
+#define USE_RXCIE 1
 
 #include <stdint.h>
 #include <stdio.h>
@@ -32,7 +32,7 @@
 
 FILE uart_stream = FDEV_SETUP_STREAM(uart_putchar, uart_getchar, _FDEV_SETUP_RW);
 
-#ifdef USE_RXCIE
+#if USE_RXCIE
 ISR(USART_RX_vect)
 {
 	uint8_t	c, *p;
@@ -77,7 +77,7 @@ void
 uart_init(void)
 {
 	UCSR0B = _BV(RXEN0) | _BV(TXEN0);
-#ifdef USE_RXCIE
+#if USE_RXCIE
 	UCSR0B |= _BV(RXCIE0);
 #endif
 	UBRR0H = UBRRH_VALUE;
