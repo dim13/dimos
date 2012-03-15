@@ -3,7 +3,7 @@
 MCU=		atmega328p
 F_CPU=		20000000
 PRESCALE=	8	# res 0.5usec	cycle 32.7msec
-STACK=		80
+STACK=		48	# min stack size
 TASKS=		11	# +1 idle = 12
 SEMAPHORES=	2
 BAUD=		9600
