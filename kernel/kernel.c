@@ -121,7 +121,7 @@ init(uint8_t stack)
 	TCNT1 = 0;				/* reset timer */
 	TCCR1A = 0;				/* normal operation */
 	TCCR1B = TIMER_FLAGS;			/* prescale */
-	TIMSK = (_BV(OCIE1A) | _BV(TOIE1));	/* enable interrupts */
+	TIMSK1 = (_BV(OCIE1A) | _BV(TOIE1));	/* enable interrupts */
 	OCR1A = 0;				/* default overflow */
 
 	TAILQ_INIT(&kernel.runq);

@@ -18,10 +18,11 @@
 #ifndef __BOOTLOADER_H
 #define __BOOTLOADER_H
 
-#define PAGESIZE	64
-#define	PAGENUM		128
-#define	RAMSTART	0x60
-#define	RAMEND		0x45F
+#define PAGESIZE	128		/* 64 words */
+#define	PAGENUM		256		/* Table 28-11 */
+#define GUARDPAGE	(256 - 32)
+#define	RAMSTART	0x100
+#define	RAMEND		0x8FF
 
 struct page {
 	unsigned char *data;

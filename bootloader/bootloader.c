@@ -22,8 +22,6 @@
 #include <string.h>
 #include "bootloader.h"
 
-#define GUARDPAGE	120
-
 int
 transfer(int fd, struct page *p, int pages, int pagesize)
 {
