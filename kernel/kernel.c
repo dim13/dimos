@@ -88,7 +88,7 @@ ISR(TIMER1_COMPA_vect, ISR_NAKED)
 	if (TAILQ_EMPTY(&kernel.runq))
 		TAILQ_INSERT_TAIL(&kernel.runq, kernel.idle, r_link);
 	
-	OCR1A = (uint16_t)(now + nexthit);
+	OCR1A = now + nexthit;
 
 	kernel.current->sp = SP;
 	kernel.current = TAILQ_FIRST(&kernel.runq);
