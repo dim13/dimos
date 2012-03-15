@@ -18,14 +18,19 @@
 #ifndef __KERNEL_H
 #define __KERNEL_H
 
-#ifndef TASKS
-#warning TASKS not set, fallback to default: 8
-#define TASKS 8
+#ifndef NTASK
+#warning NTASK not set, fallback to default: 8
+#define NTASK 8
 #endif
 
-#ifndef SEMAPHORES
-#warning SEMAPHORES not set, fallback to default: 4
-#define SEMAPHORES 4
+#ifndef NPRIO
+#warning NPRIO not set, fallback to default: 2
+#define NPRIO 2
+#endif
+
+#ifndef NSEMA
+#warning NSEMA not set, fallback to default: 4
+#define NSEMA 4
 #endif
 
 #ifndef STACK

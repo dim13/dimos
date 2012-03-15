@@ -10,9 +10,13 @@ OBJDUMP=	avr-objdump
 SIZE=		avr-size
 
 CFLAGS=		-mmcu=${MCU} -Wall -Os \
-		-DF_CPU=${F_CPU} -DPRESCALE=${PRESCALE} \
-		-DBAUD=${BAUD} -DSTACK=${STACK} -DTASKS=${TASKS} \
-		-DSEMAPHORES=${SEMAPHORES}
+		-DF_CPU=${F_CPU} \
+		-DPRESCALE=${PRESCALE} \
+		-DNTASK=${NTASK} \
+		-DNPRIO=${NPRIO} \
+		-DSTACK=${STACK} \
+		-DNSEMA=${NSEMA} \
+		-DBAUD=${BAUD}
 LDFLAGS=	-mmcu=${MCU} -Wl,-Map,${PROG}.map
 
 .SUFFIXES:	.lst .hex .bin .srec .ehex .ebin .esrec
