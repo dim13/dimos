@@ -18,8 +18,12 @@
 #ifndef __STACK_H
 #define __STACK_H
 
+#define NAKED(name, ...)	\
+void name (void) __attribute__ ((naked)) __VA_ARGS__;	\
+void name (void)
+
 /* 68 cycles */
-#define PUSH_ALL() asm volatile (		\
+#define pusha() asm volatile (			\
 		"push	r1		\n"	\
 		"push	r0		\n"	\
 		"in	r0, __SREG__	\n"	\
@@ -57,7 +61,7 @@
 		"push	r31		\n"	)
 
 /* 69 cycles */
-#define POP_ALL() asm volatile (		\
+#define popa() asm volatile (			\
 		"pop	r31		\n"	\
 		"pop	r30		\n"	\
 		"pop	r29		\n"	\
@@ -93,4 +97,5 @@
 		"pop	r0		\n"	\
 		"pop	r1		\n"	)
 
+#define ret() asm volatile ("ret");
 #endif
