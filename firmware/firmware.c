@@ -19,7 +19,7 @@
 #include <avr/boot.h>
 #include <util/setbaud.h>	/* depends on BAUD & F_CPU env vars */
 
-#define TIMEOUT	(F_CPU / 8)	/* 1 sec */
+#define TIMEOUT	F_CPU		/* 1 sec, no prescale */
 #define PUTCH(c) do { \
 	loop_until_bit_is_set(UCSR0A, UDRE0); UDR0 = (c); \
 } while (0)
