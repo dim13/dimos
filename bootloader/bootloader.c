@@ -30,6 +30,8 @@ transfer(int fd, struct page *p, int pages, int pagesize)
 
 	fprintf(stderr, "waiting for bootloader ...");
 	put('-', fd);
+	put('\r', fd);
+	put('\n', fd);
 	while (get(fd) != '+')
 		;
 
