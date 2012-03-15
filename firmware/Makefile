@@ -3,11 +3,10 @@
 PROG=		firmware
 NOMAN=
 
-MCU_TARGET=	atmega8
-F_CPU=		16000000
-PRESCALE=	8
+MCU_TARGET=	atmega328p
+F_CPU=		20000000
 BAUD=		9600
-ORG=		0x1e00
+ORG=		0x7e00		# Table 27-13, 4 Pages 265 words * 2
 
 # You should not have to change anything below here.
 

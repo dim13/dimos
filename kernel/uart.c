@@ -33,11 +33,11 @@
 FILE uart_stream = FDEV_SETUP_STREAM(uart_putchar, uart_getchar, _FDEV_SETUP_RW);
 
 #ifdef USE_RXCIE
-ISR(SIG_UART_RECV)
+ISR(USART_RX_vect)
 {
 	uint8_t	c, *p;
 
-	switch ((c = UDR)) {
+	switch ((c = UDR0)) {
 	case 'Z':	/* zero */
 		for (p = (uint8_t *)RAMSTART; p <= (uint8_t *)RAMEND; p++)
 			*p = 0;
@@ -51,10 +51,10 @@ ISR(SIG_UART_RECV)
 			uart_putchar(*p, NULL);
 		break;
 	case 'T':
-		UCSRB |= _BV(UDRIE);
+		UCSR0B |= _BV(UDRIE0);
 		break;
 	case 't':
-		UCSRB &= ~_BV(UDRIE);
+		UCSR0B &= ~_BV(UDRIE0);
 		break;
 	case '\r':
 	case '\n':
@@ -65,24 +65,28 @@ ISR(SIG_UART_RECV)
 	}
 }
 
-ISR(SIG_UART_DATA)
+ISR(USART_UDRE_vect)
 {
 	uint8_t r = running();
 
-	UDR = r ? '0' + r : '.';
+	UDR0 = r ? '0' + r : '.';
 }
 #endif
 
 void
 uart_init(void)
 {
-	UCSRB = _BV(RXEN) | _BV(TXEN);
+	UCSR0B = _BV(RXEN0) | _BV(TXEN0);
 #ifdef USE_RXCIE
-	UCSRB |= _BV(RXCIE);
+	UCSR0B |= _BV(RXCIE0);
 #endif
-	UBRRH = UBRRH_VALUE;
-	UBRRL = UBRRL_VALUE;
-	UCSRA &= ~_BV(U2X);
+	UBRR0H = UBRRH_VALUE;
+	UBRR0L = UBRRL_VALUE;
+	#if USE_U2X
+	UCSR0A |= _BV(U2X0);
+	#else
+	UCSR0A &= ~_BV(U2X0);
+	#endif
 
 	stdin = &uart_stream;
 	stdout = &uart_stream;
@@ -93,8 +97,8 @@ uart_putchar(char c, FILE *fd)
 {
 	if (c == '\n')
 		uart_putchar('\r', fd);
-	loop_until_bit_is_set(UCSRA, UDRE);
-	UDR = c;
+	loop_until_bit_is_set(UCSR0A, UDRE0);
+	UDR0 = c;
 
 	return 0;
 }
@@ -104,14 +108,14 @@ uart_getchar(FILE *fd)
 {
 	char c;
 
-	loop_until_bit_is_set(UCSRA, RXC);
+	loop_until_bit_is_set(UCSR0A, RXC0);
 
-	if (bit_is_set(UCSRA, FE))
+	if (bit_is_set(UCSR0A, FE0))
 		return -2;		/* EOF */
-	if (bit_is_set(UCSRA, DOR))
+	if (bit_is_set(UCSR0A, DOR0))
 		return -1;		/* ERR */
 
-	c = UDR;
+	c = UDR0;
 	uart_putchar(c, fd);		/* ECHO */
 
 	switch (c) {

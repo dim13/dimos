@@ -19,8 +19,10 @@
 #include <avr/boot.h>
 #include <util/setbaud.h>	/* depends on BAUD & F_CPU env vars */
 
-#define TIMEOUT (F_CPU / PRESCALE)	/* 1 sec */
-#define PUTCH(c) do { loop_until_bit_is_set(UCSRA, UDRE); UDR = (c); } while (0)
+#define TIMEOUT	(F_CPU / 8)	/* 1 sec */
+#define PUTCH(c) do { \
+	loop_until_bit_is_set(UCSR0A, UDRE0); UDR0 = (c); \
+} while (0)
 
 union {
 	uint16_t word;
@@ -39,17 +41,21 @@ main(void)
 	uint8_t sum = 0;
 	uint8_t state = INIT;
 
-	UCSRB = _BV(RXEN) | _BV(TXEN);
-	UBRRH = UBRRH_VALUE;
-	UBRRL = UBRRL_VALUE;
-	UCSRA &= ~_BV(U2X);
+	UCSR0B = _BV(RXEN0) | _BV(TXEN0);
+	UBRR0H = UBRRH_VALUE;
+	UBRR0L = UBRRL_VALUE;
+	#if USE_2X
+	UCSR0A |= _BV(U2X0);
+	#else
+	UCSR0A &= ~_BV(U2X0);
+	#endif
 
 	PUTCH('+');		/* say hallo */
 	for (;;) {
-		for (c = 0; bit_is_clear(UCSRA, RXC); c++)
+		for (c = 0; bit_is_clear(UCSR0A, RXC0); c++)
 			if (c > TIMEOUT)
 				goto reboot;
-		ch = UDR;	/* GETCH */
+		ch = UDR0;	/* GETCH */
 
 		switch (state) {
 		case INIT:
