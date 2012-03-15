@@ -29,9 +29,13 @@
 #endif
 
 #ifndef STACK
-#warning STACK not set, fallback to default: 64
-#define STACK 64
+#warning STACK not set, fallback to default: 48
+#define STACK 48
 #endif
+
+#define MINSTACK (1 * STACK - 2)
+#define DEFSTACK (2 * STACK - 2)
+#define BIGSTACK (3 * STACK - 2)
 
 #ifndef F_CPU
 #warning F_CPU not set, fallback to default: 16MHz
