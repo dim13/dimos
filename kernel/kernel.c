@@ -23,6 +23,7 @@
 #include <string.h>
 #include <avr/io.h>
 #include <avr/interrupt.h>
+#include <avr/power.h>
 #include <avr/wdt.h>
 #include "kernel.h"
 #include "stack.h"
@@ -65,48 +66,35 @@ ISR(TIMER1_COMPA_vect, ISR_NAKED)
 	uint16_t nexthit;
 	int32_t dist;
 
-	PUSH_ALL();
+	pusha();
 	now = NOW(kernel.cycles, TCNT1);
+	nexthit = UINT16_MAX;
 
-	/* release waiting tasks */
 	TAILQ_FOREACH_SAFE(tp, &kernel.timeq, t_link, tmp) {
-		if (DISTANCE(tp->release, now) >= 0) {
+		dist = DISTANCE(now, tp->release);
+		if (dist <= 0) {
 			TAILQ_REMOVE(&kernel.timeq, tp, t_link);
 			TAILQ_INSERT_TAIL(&kernel.runq, tp, r_link);
-		} else
-			break;
-	}
-
-	/* drop idle */
-	if (kernel.current == kernel.idle)
-		TAILQ_REMOVE(&kernel.runq, kernel.current, r_link);
-
-	/* runq not changed && not empty -> yield */
-	if (kernel.current == TAILQ_FIRST(&kernel.runq)) {
-		TAILQ_REMOVE(&kernel.runq, kernel.current, r_link);
-		TAILQ_INSERT_TAIL(&kernel.runq, kernel.current, r_link);
-	}
-
-	/* go idle if nothing to do */
-	if (TAILQ_EMPTY(&kernel.runq))
-		TAILQ_INSERT_TAIL(&kernel.runq, kernel.idle, r_link);
-
-	nexthit = INT16_MAX;		/* max time slice */
-
-	if ((tp = TAILQ_FIRST(&kernel.timeq))) {
-		dist = DISTANCE(now, tp->release);
-		if (dist < nexthit)
+		} else if (dist < nexthit)
 			nexthit = dist;
 	}
 
+	if (kernel.current == TAILQ_FIRST(&kernel.runq)) {
+		TAILQ_REMOVE(&kernel.runq, kernel.current, r_link);
+		if (kernel.current != kernel.idle)
+			TAILQ_INSERT_TAIL(&kernel.runq, kernel.current, r_link);
+	}
+
+	if (TAILQ_EMPTY(&kernel.runq))
+		TAILQ_INSERT_TAIL(&kernel.runq, kernel.idle, r_link);
+	
 	OCR1A = (uint16_t)(now + nexthit);
 
-	/* switch context */
 	kernel.current->sp = SP;
 	kernel.current = TAILQ_FIRST(&kernel.runq);
 	SP = kernel.current->sp;
 
-	POP_ALL();
+	popa();
 	reti();
 }
 
@@ -116,8 +104,11 @@ init(uint8_t stack)
 	uint8_t i;
 
 	cli();
+
 	MCUSR = 0;
 	wdt_disable();
+
+	clock_prescale_set(clock_div_1);
 
 	/* Set up timer 1 */
 	TCNT1 = 0;				/* reset timer */
@@ -215,23 +206,11 @@ signal(uint8_t chan)
 void
 sleep(uint32_t sec, uint32_t usec)
 {
-	struct task *tp;
-
 	cli();
 
-	TAILQ_REMOVE(&kernel.runq, kernel.current, r_link);
 	kernel.current->release += SEC(sec) + USEC(usec);
-
-	/* find right position on time queue */
-	TAILQ_FOREACH(tp, &kernel.timeq, t_link)
-		if (DISTANCE(kernel.current->release, tp->release) > 0)
-			break;
-
-	if (tp)
-		TAILQ_INSERT_BEFORE(tp, kernel.current, t_link);
-	else
-		TAILQ_INSERT_TAIL(&kernel.timeq, kernel.current, t_link);
-
+	TAILQ_REMOVE(&kernel.runq, kernel.current, r_link);
+	TAILQ_INSERT_TAIL(&kernel.timeq, kernel.current, t_link);
 	SCHEDULE();
 }
 
@@ -239,7 +218,6 @@ void
 yield(void)
 {
 	cli();
-
 	SCHEDULE();
 }
 
@@ -249,7 +227,6 @@ suspend(void)
 	cli();
 
 	TAILQ_REMOVE(&kernel.runq, kernel.current, r_link);
-
 	SCHEDULE();
 }
 

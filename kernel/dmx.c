@@ -36,11 +36,11 @@ struct pwmarg pwmargs[] = {
 int
 main()
 {
-	init(STACK);
+	init(DEFSTACK);
 	uart_init();
 	lcd_init();
 
-	exec(heartbeat, NULL, MINSTACK);
+	exec(heartbeat, NULL, DEFSTACK);
 	exec(rgb, &rgbargs, DEFSTACK);
 	exec(pwm, &pwmargs[0], DEFSTACK);
 	exec(pwm, &pwmargs[1], DEFSTACK);
