@@ -116,6 +116,8 @@ init(uint8_t stack)
 	uint8_t i;
 
 	cli();
+	MCUSR = 0;
+	wdt_disable();
 
 	/* Set up timer 1 */
 	TCNT1 = 0;				/* reset timer */
