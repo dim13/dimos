@@ -17,6 +17,7 @@
 
 #include <avr/io.h>
 #include <avr/boot.h>
+#include <avr/wdt.h>
 #include <util/setbaud.h>	/* depends on BAUD & F_CPU env vars */
 
 #define TIMEOUT	(F_CPU >> 4)	/* ~ 1 sec */
@@ -36,10 +37,13 @@ main(void)
 {
 	uint32_t c = 0;
 	uint16_t off = 0;
-	uint16_t n = 0;
+	uint8_t n = 0;
 	uint8_t ch = 0;
 	uint8_t sum = 0;
 	uint8_t state = INIT;
+
+	MCUSR = 0;
+	wdt_disable();
 
 	UCSR0B = _BV(RXEN0) | _BV(TXEN0);
 	UBRR0H = UBRRH_VALUE;
