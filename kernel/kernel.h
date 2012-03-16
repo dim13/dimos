@@ -101,6 +101,7 @@ uint32_t now(void);
 uint8_t running(void);
 
 void reboot(void);
+void idle(void);
 
 /* __END_DECLS */
 

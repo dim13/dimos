@@ -25,6 +25,7 @@
 #include <avr/io.h>
 #include <avr/interrupt.h>
 #include <avr/power.h>
+#include <avr/sleep.h>
 #include <avr/wdt.h>
 #include "kernel.h"
 #include "stack.h"
@@ -255,4 +256,11 @@ void
 reboot(void)
 {
 	wdt_enable(WDTO_15MS);
+}
+
+void
+idle(void)
+{
+	for (;;)
+		sleep_mode();
 }

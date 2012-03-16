@@ -19,8 +19,6 @@
 #include <stdio.h>
 #include <string.h>
 #include <avr/io.h>
-#include <avr/cpufunc.h>
-#include <avr/sleep.h>
 #include "kernel.h"
 #include "tasks.h"
 
@@ -53,8 +51,7 @@ main()
 	exec(ppm, &ppmarg, DEFSTACK);
 #endif
 
-	for (;;)
-		sleep_mode();
+	idle();
 
 	return 0;
 }
