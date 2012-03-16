@@ -30,8 +30,6 @@
 #include "kernel.h"
 #include "tasks.h"
 
-FILE uart_stream = FDEV_SETUP_STREAM(uart_putchar, uart_getchar, _FDEV_SETUP_RW);
-
 #if USE_RXCIE
 ISR(USART_RX_vect)
 {
@@ -76,6 +74,8 @@ ISR(USART_UDRE_vect)
 void
 uart_init(void)
 {
+	FILE *uart_stream;
+
 	UCSR0B = _BV(RXEN0) | _BV(TXEN0);
 #if USE_RXCIE
 	UCSR0B |= _BV(RXCIE0);
@@ -88,8 +88,9 @@ uart_init(void)
 	UCSR0A &= ~_BV(U2X0);
 	#endif
 
-	stdin = &uart_stream;
-	stdout = &uart_stream;
+	uart_stream = fdevopen(uart_putchar, uart_getchar);
+	stdin = uart_stream;
+	stdout = uart_stream;
 }
 
 int

@@ -25,8 +25,6 @@
 #include "kernel.h"
 #include "tasks.h"
 
-FILE lcd_stream = FDEV_SETUP_STREAM(lcd_putchar, NULL, _FDEV_SETUP_WRITE);
-
 #define CLEAR_DISPLAY		_BV(0)
 #define RETURN_HOME		_BV(1)
 
@@ -88,6 +86,8 @@ write_byte(uint8_t byte, uint8_t rs)
 void
 lcd_init(void)
 {
+	FILE *lcd_stream;
+
 	PORTDIR |= (_BV(DATA) | _BV(CLOCK) | _BV(E));
 
 	/* task init: wait >40ms */
@@ -108,7 +108,8 @@ lcd_init(void)
 
 	home();
 
-	stderr = &lcd_stream;
+	lcd_stream = fdevopen(lcd_putchar, NULL);
+	stderr = lcd_stream;
 }
 
 int
