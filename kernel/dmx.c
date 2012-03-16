@@ -36,7 +36,7 @@ struct pwmarg pwmargs[] = {
 int
 main()
 {
-	init();
+	init(NPRIO, NSEMA);
 	uart_init();
 	lcd_init();
 

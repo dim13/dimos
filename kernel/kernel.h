@@ -87,7 +87,7 @@
 
 /* __BEGIN_DECLS */
 
-void init(void);
+void init(uint8_t prio, uint8_t sema);
 void exec(void (*fun)(void *), void *args, uint8_t stack);
 
 void wait(uint8_t chan);

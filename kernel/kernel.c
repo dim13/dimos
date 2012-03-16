@@ -51,11 +51,11 @@ TAILQ_HEAD(queue, task);
 struct kern {
 	struct queue rq;		/* run queue */
 	struct queue tq;		/* time queue */
-	struct queue wq[NSEMA];		/* wait queue */
+	struct queue *wq;		/* wait queues */
 	struct task *idle;
 	struct task *cur;		/* current task */
 	uint16_t cycles;		/* clock high byte */
-	uint8_t semaphore;		/* bitfield */
+	uint16_t semaphore;		/* bitmap */
 } kern;
 
 ISR(TIMER1_OVF_vect)
@@ -104,7 +104,7 @@ ISR(TIMER1_COMPA_vect, ISR_NAKED)
 }
 
 void
-init(void)
+init(uint8_t prio, uint8_t sema)
 {
 	uint8_t i;
 
@@ -124,7 +124,8 @@ init(void)
 
 	TAILQ_INIT(&kern.rq);
 	TAILQ_INIT(&kern.tq);
-	for (i = 0; i < NSEMA; i++)
+	kern.wq = calloc(sema, sizeof(struct queue));
+	for (i = 0; i < sema; i++)
 		TAILQ_INIT(&kern.wq[i]);
 
 	kern.idle = calloc(1, sizeof(struct task));
