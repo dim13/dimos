@@ -130,7 +130,7 @@ init(void)
 	kern.idle = calloc(1, sizeof(struct task));
 	kern.idle->id = 0;
 	kern.idle->release = 0;
-	kern.idle->sp = SP;			/* XXX not needed at all */
+	kern.idle->sp = SP;			/* not really needed */
 	TAILQ_INSERT_TAIL(&kern.rq, kern.idle, r_link);
 	kern.cur = TAILQ_FIRST(&kern.rq);
 
@@ -233,6 +233,7 @@ suspend(void)
 {
 	cli();
 
+	/* TODO: clean up */
 	TAILQ_REMOVE(&kern.rq, kern.cur, r_link);
 	SCHEDULE();
 }
