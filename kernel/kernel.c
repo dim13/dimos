@@ -72,9 +72,11 @@ ISR(TIMER1_COMPA_vect, ISR_NAKED)
 	int32_t dist;
 
 	pusha();
+	/* grab time as early as possible */
 	now = NOW(kern.cycles, TCNT1);
 	nexthit = UINT16_MAX;
 
+	/* release waiting tasks */
 	TAILQ_FOREACH_SAFE(tp, &kern.tq, t_link, tmp) {
 		dist = DISTANCE(now, tp->release);
 		if (dist <= 0) {
@@ -84,18 +86,22 @@ ISR(TIMER1_COMPA_vect, ISR_NAKED)
 			nexthit = dist;
 	}
 
+	/* reschedule current task if it still at head of runq */
 	if (kern.cur == TAILQ_FIRST(&kern.rq)) {
 		TAILQ_REMOVE(&kern.rq, kern.cur, r_link);
+		/* skipping idle task */
 		if (kern.cur != kern.idle) {
 			TAILQ_INSERT_TAIL(&kern.rq, kern.cur, r_link);
 		}
 	}
 
+	/* if none is ready, go idle */
 	if (TAILQ_EMPTY(&kern.rq))
 		TAILQ_INSERT_TAIL(&kern.rq, kern.idle, r_link);
 	
 	OCR1A = now + nexthit;
 
+	/* switch context */
 	kern.cur->sp = SP;
 	kern.cur = TAILQ_FIRST(&kern.rq);
 	SP = kern.cur->sp;
@@ -111,9 +117,11 @@ init(uint8_t prio, uint8_t sema)
 
 	cli();
 
+	/* disable watchdog */
 	MCUSR = 0;
 	wdt_disable();
 
+	/* set clock prescale to 1 in case CKDIV8 fuse is on */
 	clock_prescale_set(clock_div_1);
 
 	/* Set up timer 1 */
@@ -123,12 +131,14 @@ init(uint8_t prio, uint8_t sema)
 	TIMSK1 = (_BV(OCIE1A) | _BV(TOIE1));	/* enable interrupts */
 	OCR1A = 0;				/* default overflow */
 
+	/* init queues */
 	TAILQ_INIT(&kern.rq);
 	TAILQ_INIT(&kern.tq);
 	kern.wq = calloc(sema, sizeof(struct queue));
 	for (i = 0; i < sema; i++)
 		TAILQ_INIT(&kern.wq[i]);
 
+	/* init idle task */
 	kern.idle = calloc(1, sizeof(struct task));
 	kern.idle->id = 0;
 	kern.idle->release = 0;
@@ -151,6 +161,7 @@ exec(void (*fun)(void *), void *args, uint8_t stack)
 
 	cli();
 
+	/* allocate task memory */
 	tp = calloc(1, sizeof(struct task));
 	tp->stack = calloc(stack, sizeof(uint8_t));
 	sp = tp->stack + stack - 1;
@@ -235,7 +246,7 @@ suspend(void)
 {
 	cli();
 
-	/* TODO: clean up */
+	/* TODO: free memory */
 	TAILQ_REMOVE(&kern.rq, kern.cur, r_link);
 	SCHEDULE();
 }
