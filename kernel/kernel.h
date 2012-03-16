@@ -18,11 +18,6 @@
 #ifndef __KERNEL_H
 #define __KERNEL_H
 
-#ifndef NTASK
-#warning NTASK not set, fallback to default: 8
-#define NTASK 8
-#endif
-
 #ifndef NPRIO
 #warning NPRIO not set, fallback to default: 2
 #define NPRIO 2
@@ -92,7 +87,7 @@
 
 /* __BEGIN_DECLS */
 
-void init(uint8_t stack);
+void init(void);
 void exec(void (*fun)(void *), void *args, uint8_t stack);
 
 void wait(uint8_t chan);
