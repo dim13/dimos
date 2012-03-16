@@ -42,9 +42,9 @@ adc(void *arg)
 			a->value[i] = ADCH;	/* ADLAR: 8-bit */
 			sei();
 		}
-		wait(0);
+		wait(Display);
 		fprintf(stderr, "\n%8lx%8x", now(), a->value[0]);
-		signal(0);
+		signal(Display);
 		sleep(0, 100000);
 	}
 }

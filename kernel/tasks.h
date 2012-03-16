@@ -41,6 +41,9 @@
 #warning "invalid ADCPRESCALE value"
 #endif
 
+enum Prio { Low, High, nPrio };
+enum Sema { Display, nSema };
+
 struct rgbarg {
 	uint8_t r;
 	uint8_t g;
