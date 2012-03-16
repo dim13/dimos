@@ -15,6 +15,10 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
+#ifndef BAUD
+#define BAUD 9600
+#endif
+
 #include <avr/io.h>
 #include <avr/boot.h>
 #include <avr/wdt.h>
