@@ -29,18 +29,15 @@
 #include "stack.h"
 #include "queue.h"
 
-enum State { TERMINATED, RUNQ, TIMEQ, WAITQ, SIGNAL };
-
 #define LO8(x)			((uint8_t)((uint16_t)(x)))
 #define HI8(x)			((uint8_t)((uint16_t)(x) >> 8))
-#define SCHEDULE		TIMER1_COMPA_vect
-#define DISTANCE(from, to)	((int32_t)((to) - (from)))
-#define EPOCH			(INT32_MAX >> 1)
 #define NOW(hi, lo)		(((uint32_t)(hi) << 0x10) | (lo))
+#define DISTANCE(from, to)	((int32_t)((to) - (from)))
+#define SCHEDULE		TIMER1_COMPA_vect
 
 struct task {
-	uint32_t release;
-	uint16_t sp;		/* stack pointer */
+	uint32_t release;		/* release time */
+	uint16_t sp;			/* stack pointer */
 	TAILQ_ENTRY(task) r_link;
 	TAILQ_ENTRY(task) t_link;
 	TAILQ_ENTRY(task) w_link;
