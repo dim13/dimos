@@ -18,24 +18,14 @@
 #ifndef __KERNEL_H
 #define __KERNEL_H
 
-#ifndef NPRIO
-#warning NPRIO not set, fallback to default: 2
-#define NPRIO 2
-#endif
-
-#ifndef NSEMA
-#warning NSEMA not set, fallback to default: 4
-#define NSEMA 4
-#endif
-
 #ifndef STACK
 #warning STACK not set, fallback to default: 48
 #define STACK 48
 #endif
 
-#define MINSTACK (1 * STACK - 2)
-#define DEFSTACK (2 * STACK - 2)
-#define BIGSTACK (3 * STACK - 2)
+#define MINSTACK (1 * STACK)
+#define DEFSTACK (2 * STACK)
+#define BIGSTACK (3 * STACK)
 
 #ifndef F_CPU
 #warning F_CPU not set, fallback to default: 16MHz

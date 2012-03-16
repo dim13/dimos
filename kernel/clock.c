@@ -37,9 +37,9 @@ clock(void *arg)
 		if (m == 60) { m = 0; ++h; }
 		if (h == 24) { h = 0; ++d; }
 
-		wait(0);
+		wait(Display);
 		fprintf(stderr, "\r%4d:%.2d:%.2d:%.2d.%1d ", d, h, m, s, ds);
-		signal(0);
+		signal(Display);
 
 		sleep(0, 100000);
 	}

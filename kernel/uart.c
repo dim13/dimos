@@ -16,8 +16,7 @@
  */
 
 #ifndef BAUD
-#warning "BAUD not set, fallback to default"
-#define BAUD	9600
+#define BAUD 9600
 #endif
 
 #define USE_RXCIE 1
@@ -26,7 +25,7 @@
 #include <stdio.h>
 #include <avr/io.h>
 #include <avr/interrupt.h>
-#include <util/setbaud.h>
+#include <util/setbaud.h>		/* depends on BAUD and F_CPU */
 #include "kernel.h"
 #include "tasks.h"
 
