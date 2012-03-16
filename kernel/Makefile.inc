@@ -12,7 +12,6 @@ SIZE=		avr-size
 CFLAGS=		-mmcu=${MCU} -Wall -Os \
 		-DF_CPU=${F_CPU} \
 		-DPRESCALE=${PRESCALE} \
-		-DNTASK=${NTASK} \
 		-DNPRIO=${NPRIO} \
 		-DSTACK=${STACK} \
 		-DNSEMA=${NSEMA} \

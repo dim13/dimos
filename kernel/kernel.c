@@ -20,6 +20,7 @@
  */
 
 #include <stdint.h>
+#include <stdlib.h>
 #include <string.h>
 #include <avr/io.h>
 #include <avr/interrupt.h>
@@ -38,6 +39,7 @@
 struct task {
 	uint32_t release;		/* release time */
 	uint16_t sp;			/* stack pointer */
+	uint8_t *stack;
 	TAILQ_ENTRY(task) r_link;
 	TAILQ_ENTRY(task) t_link;
 	TAILQ_ENTRY(task) w_link;
@@ -49,11 +51,9 @@ struct kern {
 	struct queue rq;		/* run queue */
 	struct queue tq;		/* time queue */
 	struct queue wq[NSEMA];		/* wait queue */
-	struct task idle[1 + NTASK];	/* array of tasks, first idle */
-	struct task *last;		/* last allocated task */
+	struct task *idle;
 	struct task *cur;		/* current task */
 	uint16_t cycles;		/* clock high byte */
-	uint8_t *freemem;		/* unallocated memory */
 	uint8_t semaphore;		/* bitfield */
 } kern;
 
@@ -103,7 +103,7 @@ ISR(TIMER1_COMPA_vect, ISR_NAKED)
 }
 
 void
-init(uint8_t stack)
+init(void)
 {
 	uint8_t i;
 
@@ -126,14 +126,13 @@ init(uint8_t stack)
 	for (i = 0; i < NSEMA; i++)
 		TAILQ_INIT(&kern.wq[i]);
 
+	kern.idle = calloc(1, sizeof(struct task));
 	kern.idle->release = 0;
 	kern.idle->sp = SP;			/* XXX not needed at all */
 	TAILQ_INSERT_TAIL(&kern.rq, kern.idle, r_link);
 	kern.cur = TAILQ_FIRST(&kern.rq);
-	kern.last = kern.idle;
 
 	kern.cycles = 0;
-	kern.freemem = (uint8_t *)(RAMEND - stack);
 	kern.semaphore = 0;
 
 	sei();
@@ -147,8 +146,9 @@ exec(void (*fun)(void *), void *args, uint8_t stack)
 
 	cli();
 
-	sp = kern.freemem;
-	kern.freemem -= stack + 2;	/* +PC */
+	tp = calloc(1, sizeof(struct task));
+	tp->stack = calloc(stack, sizeof(uint8_t));
+	sp = tp->stack + stack - 1;
 
 	/* initialize stack */
 	*sp-- = LO8(fun);		/* PC(lo) */
@@ -163,7 +163,6 @@ exec(void (*fun)(void *), void *args, uint8_t stack)
 	sp -= 6;
 	memset(sp, 0, 6);		/* r26-r31 */
 
-	tp = ++kern.last;
 	tp->release = 0;
 	tp->sp = (uint16_t)sp;		/* SP */
 	TAILQ_INSERT_TAIL(&kern.rq, tp, r_link);
