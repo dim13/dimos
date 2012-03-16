@@ -39,7 +39,8 @@
 struct task {
 	uint32_t release;		/* release time */
 	uint16_t sp;			/* stack pointer */
-	uint8_t *stack;
+	uint8_t *stack;			/* stack area */
+	uint8_t id;			/* task id */
 	TAILQ_ENTRY(task) r_link;
 	TAILQ_ENTRY(task) t_link;
 	TAILQ_ENTRY(task) w_link;
@@ -127,6 +128,7 @@ init(void)
 		TAILQ_INIT(&kern.wq[i]);
 
 	kern.idle = calloc(1, sizeof(struct task));
+	kern.idle->id = 0;
 	kern.idle->release = 0;
 	kern.idle->sp = SP;			/* XXX not needed at all */
 	TAILQ_INSERT_TAIL(&kern.rq, kern.idle, r_link);
@@ -143,6 +145,7 @@ exec(void (*fun)(void *), void *args, uint8_t stack)
 {
 	struct task *tp;
 	uint8_t *sp;
+	static uint8_t id = 0;
 
 	cli();
 
@@ -163,6 +166,7 @@ exec(void (*fun)(void *), void *args, uint8_t stack)
 	sp -= 6;
 	memset(sp, 0, 6);		/* r26-r31 */
 
+	tp->id = ++id;
 	tp->release = 0;
 	tp->sp = (uint16_t)sp;		/* SP */
 	TAILQ_INSERT_TAIL(&kern.rq, tp, r_link);
@@ -242,7 +246,7 @@ now(void)
 uint8_t
 running(void)
 {
-	return kern.cur - kern.idle;
+	return kern.cur->id;
 }
 
 void
