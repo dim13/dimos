@@ -5,7 +5,6 @@ NOMAN=
 
 MCU_TARGET=	atmega328p
 F_CPU=		20000000
-BAUD=		9600
 ORG=		0x7e00		# Table 27-13, 4 Pages 265 words * 2
 
 # You should not have to change anything below here.
@@ -15,8 +14,7 @@ OBJCOPY=	avr-objcopy
 OBJDUMP=	avr-objdump
 SIZE=		avr-size
 
-CFLAGS=		-mmcu=${MCU_TARGET} -Wall -Os \
-		-DF_CPU=${F_CPU} -DPRESCALE=${PRESCALE} -DBAUD=${BAUD}
+CFLAGS=		-mmcu=${MCU_TARGET} -Wall -Os -DF_CPU=${F_CPU}
 LDFLAGS=	-mmcu=${MCU_TARGET} \
 		-Wl,-Map,${PROG}.map,--section-start=.text=${ORG}
 
