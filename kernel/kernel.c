@@ -86,13 +86,12 @@ ISR(TIMER1_COMPA_vect, ISR_NAKED)
 			nexthit = dist;
 	}
 
-	/* reschedule current task if it still at head of runq */
+	/* reschedule current task if it's still at head of runq */
 	if (kern.cur == TAILQ_FIRST(&kern.rq)) {
 		TAILQ_REMOVE(&kern.rq, kern.cur, r_link);
 		/* skipping idle task */
-		if (kern.cur != kern.idle) {
+		if (kern.cur != kern.idle)
 			TAILQ_INSERT_TAIL(&kern.rq, kern.cur, r_link);
-		}
 	}
 
 	/* if none is ready, go idle */
