@@ -56,7 +56,7 @@ struct kern {
 	struct task *idle;
 	struct task *cur;		/* current task */
 	uint16_t cycles;		/* clock high byte */
-	uint16_t semaphore;		/* bitmap */
+	uint8_t semaphore;		/* bitmap */
 } kern;
 
 ISR(TIMER1_OVF_vect)
