@@ -18,14 +18,9 @@
 #ifndef __KERNEL_H
 #define __KERNEL_H
 
-#ifndef STACK
-#warning STACK not set, fallback to default: 48
-#define STACK 48
-#endif
-
-#define MINSTACK (1 * STACK)
-#define DEFSTACK (2 * STACK)
-#define BIGSTACK (3 * STACK)
+#define MINSTACK 48
+#define DEFSTACK 96
+#define BIGSTACK 128
 
 #ifndef F_CPU
 #warning F_CPU not set, fallback to default: 16MHz

@@ -10,9 +10,7 @@ OBJDUMP=	avr-objdump
 SIZE=		avr-size
 
 CFLAGS=		-mmcu=${MCU} -Wall -Os \
-		-DF_CPU=${F_CPU} \
-		-DPRESCALE=${PRESCALE} \
-		-DSTACK=${STACK}
+		-DF_CPU=${F_CPU} -DPRESCALE=${PRESCALE}
 LDFLAGS=	-mmcu=${MCU} -Wl,-Map,${PROG}.map
 
 .SUFFIXES:	.lst .hex .bin .srec .ehex .ebin .esrec
