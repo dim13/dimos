@@ -2,7 +2,7 @@
 
 MCU=		atmega328p
 F_CPU=		20000000
-PRESCALE=	8
+PRESCALE=	1
 STACK=		48
 
 PROG=	dmx
