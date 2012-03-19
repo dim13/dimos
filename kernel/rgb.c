@@ -35,12 +35,12 @@ rgb(void *arg)
 		i = (i + 1) % 360;
 		hsv(&r, &g, &b, i, 255, v);
 
-		cli();
+		wait(RGB);
 		a->r = r;
 		a->g = g;
 		a->b = b;
 		v = *a->v;		/* 10bit to 8bit */
-		sei();
+		signal(RGB);
 
 		sleep(0, 40000);
 	}
@@ -56,9 +56,9 @@ pwm(void *arg)
 	PORTB &= ~_BV(a->pin);
 
 	for (;;) {
-		cli();
+		wait(RGB);
 		t = *a->value;
-		sei();
+		signal(RGB);
 
 		/* on */
 		if (t) {
