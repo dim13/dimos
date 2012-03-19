@@ -38,13 +38,16 @@ adc(void *arg)
 			ADMUX = (i & MUXMASK) | _BV(ADLAR);
 			ADCSRA |= _BV(ADSC);
 			loop_until_bit_is_clear(ADCSRA, ADSC);
-			cli();
+
+			wait(Adc);
 			a->value[i] = ADCH;	/* ADLAR: 8-bit */
-			sei();
+			signal(Adc);
 		}
+
 		wait(Display);
 		fprintf(stderr, "\n%8lx%8x", now(), a->value[0]);
 		signal(Display);
+
 		sleep(0, 100000);
 	}
 }

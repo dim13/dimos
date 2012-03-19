@@ -39,7 +39,7 @@ main()
 	lcd_init();
 
 	exec(heartbeat, NULL, DEFSTACK);
-	exec(rgb, &rgbargs, DEFSTACK);
+	exec(rgb, &rgbargs, BIGSTACK);
 	exec(pwm, &pwmargs[0], DEFSTACK);
 	exec(pwm, &pwmargs[1], DEFSTACK);
 	exec(pwm, &pwmargs[2], DEFSTACK);

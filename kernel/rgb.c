@@ -32,6 +32,10 @@ rgb(void *arg)
 	uint8_t r, g, b, v = 0;
 
 	for (;;) {
+		wait(Adc);
+		v = *a->v;		/* 8bit */
+		signal(Adc);
+
 		i = (i + 1) % 360;
 		hsv(&r, &g, &b, i, 255, v);
 
@@ -39,7 +43,6 @@ rgb(void *arg)
 		a->r = r;
 		a->g = g;
 		a->b = b;
-		v = *a->v;		/* 10bit to 8bit */
 		signal(RGB);
 
 		sleep(0, 40000);
