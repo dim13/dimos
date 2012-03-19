@@ -46,8 +46,6 @@ rgb(void *arg)
 	}
 }
 
-#define SCALE 80			/* gives ~50Hz duty cycle */
-
 void
 pwm(void *arg)
 {
@@ -65,13 +63,13 @@ pwm(void *arg)
 		/* on */
 		if (t) {
 			PORTB |= _BV(a->pin);
-			sleep(0, t * SCALE);
+			sleep(0, t << 6);
 		}
 
 		/* off */
 		if ((t = UINT8_MAX - t)) {
 			PORTB &= ~_BV(a->pin);
-			sleep(0, t * SCALE);
+			sleep(0, t << 6);
 		}
 	}
 }
