@@ -42,7 +42,7 @@
 #endif
 
 enum Prio { Low, High, nPrio };
-enum Sema { Display, nSema };
+enum Sema { Display, RGB, nSema };
 
 struct rgbarg {
 	uint8_t r;
