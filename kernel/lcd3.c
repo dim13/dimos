@@ -15,8 +15,6 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#define USE_DELAY
-
 #include <stdint.h>
 #include <stdio.h>
 #include <avr/io.h>
