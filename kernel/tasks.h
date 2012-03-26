@@ -54,7 +54,6 @@ struct rgbarg {
 struct pwmarg {
 	uint8_t *value;
 	uint8_t pin;
-	uint8_t sema;
 };
 
 struct adcarg {
