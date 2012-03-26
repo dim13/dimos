@@ -5,6 +5,7 @@
 SRCS+=		kernel.c
 
 MCU=		atmega328p
+F_CPU=		20000000
 CC=		avr-gcc
 OBJCOPY=	avr-objcopy
 OBJDUMP=	avr-objdump
