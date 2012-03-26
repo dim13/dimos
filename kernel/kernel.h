@@ -28,7 +28,6 @@
 #endif
 
 #ifndef PRESCALE
-#warning PRESCALE not set, fallback to default: 1
 #define PRESCALE 1
 #endif
 

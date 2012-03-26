@@ -4,13 +4,13 @@
 
 SRCS+=		kernel.c
 
+MCU=		atmega328p
 CC=		avr-gcc
 OBJCOPY=	avr-objcopy
 OBJDUMP=	avr-objdump
 SIZE=		avr-size
 
-CFLAGS=		-mmcu=${MCU} -Wall -Os \
-		-DF_CPU=${F_CPU} -DPRESCALE=${PRESCALE}
+CFLAGS=		-mmcu=${MCU} -Wall -Os -DF_CPU=${F_CPU}
 LDFLAGS=	-mmcu=${MCU} -Wl,-Map,${PROG}.map
 
 .SUFFIXES:	.lst .hex .bin .srec .ehex .ebin .esrec
