@@ -41,7 +41,6 @@
 #warning "invalid ADCPRESCALE value"
 #endif
 
-enum Prio { Low, High, nPrio };
 enum Sema { Display, RGB, Adc, nSema };
 
 struct rgbarg {
