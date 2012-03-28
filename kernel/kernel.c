@@ -42,6 +42,7 @@ struct task {
 	uint16_t sp;			/* stack pointer */
 	uint8_t *stack;			/* stack area */
 	uint8_t id;			/* task id */
+	struct queue *rq;
 	TAILQ_ENTRY(task) r_link;
 	TAILQ_ENTRY(task) t_link;
 	TAILQ_ENTRY(task) w_link;
@@ -50,9 +51,9 @@ struct task {
 TAILQ_HEAD(queue, task);
 
 struct kern {
-	struct queue rq;		/* run queue */
-	struct queue tq;		/* time queue */
+	struct queue *rq;		/* run queue */
 	struct queue *wq;		/* wait queues */
+	struct queue tq;		/* time queue */
 	struct task *idle;
 	struct task *cur;		/* current task */
 	uint16_t cycles;		/* clock high byte */
@@ -66,10 +67,12 @@ ISR(TIMER1_OVF_vect)
 
 ISR(TIMER1_COMPA_vect, ISR_NAKED)
 {
+	struct queue *rq;
 	struct task *tp, *tmp;
 	uint32_t now;
 	uint16_t nexthit;
 	int32_t dist;
+	uint8_t i;
 
 	pusha();
 	/* grab time as early as possible */
@@ -81,28 +84,38 @@ ISR(TIMER1_COMPA_vect, ISR_NAKED)
 		dist = DISTANCE(now, tp->release);
 		if (dist <= 0) {
 			TAILQ_REMOVE(&kern.tq, tp, t_link);
-			TAILQ_INSERT_TAIL(&kern.rq, tp, r_link);
+			tp->rq = &kern.rq[High];
+			TAILQ_INSERT_TAIL(tp->rq, tp, r_link);
 		} else if (dist < nexthit)
 			nexthit = dist;
 	}
 
 	/* reschedule current task if it's still at head of runq */
-	if (kern.cur == TAILQ_FIRST(&kern.rq)) {
-		TAILQ_REMOVE(&kern.rq, kern.cur, r_link);
+	if (kern.cur == TAILQ_FIRST(kern.cur->rq)) {
+		TAILQ_REMOVE(kern.cur->rq, kern.cur, r_link);
+		kern.cur->rq = &kern.rq[Low];
 		/* skipping idle task */
 		if (kern.cur != kern.idle)
-			TAILQ_INSERT_TAIL(&kern.rq, kern.cur, r_link);
+			TAILQ_INSERT_TAIL(kern.cur->rq, kern.cur, r_link);
 	}
 
+	/* pick hightes rq */
+	rq = kern.idle->rq;
+	for (i = 0; i < nPrio; i++)
+		if (!TAILQ_EMPTY(&kern.rq[i])) {
+			rq = &kern.rq[i];
+			break;
+		}
+
 	/* if none is ready, go idle */
-	if (TAILQ_EMPTY(&kern.rq))
-		TAILQ_INSERT_TAIL(&kern.rq, kern.idle, r_link);
+	if (rq == kern.idle->rq && TAILQ_EMPTY(rq))
+		TAILQ_INSERT_TAIL(kern.idle->rq, kern.idle, r_link);
 	
 	OCR1A = now + nexthit;
 
 	/* switch context */
 	kern.cur->sp = SP;
-	kern.cur = TAILQ_FIRST(&kern.rq);
+	kern.cur = TAILQ_FIRST(rq);
 	SP = kern.cur->sp;
 
 	popa();
@@ -131,19 +144,25 @@ init(uint8_t prio, uint8_t sema)
 	OCR1A = 0;				/* default overflow */
 
 	/* init queues */
-	TAILQ_INIT(&kern.rq);
-	TAILQ_INIT(&kern.tq);
+
+	kern.rq = calloc(prio, sizeof(struct queue));
+	for (i = 0; i < prio; i++)
+		TAILQ_INIT(&kern.rq[i]);
+
 	kern.wq = calloc(sema, sizeof(struct queue));
 	for (i = 0; i < sema; i++)
 		TAILQ_INIT(&kern.wq[i]);
+
+	TAILQ_INIT(&kern.tq);
 
 	/* init idle task */
 	kern.idle = calloc(1, sizeof(struct task));
 	kern.idle->id = 0;
 	kern.idle->release = 0;
 	kern.idle->sp = SP;			/* not really needed */
-	TAILQ_INSERT_TAIL(&kern.rq, kern.idle, r_link);
-	kern.cur = TAILQ_FIRST(&kern.rq);
+	kern.idle->rq = &kern.rq[Low];
+	TAILQ_INSERT_TAIL(kern.idle->rq, kern.idle, r_link);
+	kern.cur = TAILQ_FIRST(kern.idle->rq);
 
 	kern.cycles = 0;
 	kern.semaphore = 0;
@@ -181,7 +200,8 @@ exec(void (*fun)(void *), void *args, uint8_t stack)
 	tp->id = ++id;
 	tp->release = 0;
 	tp->sp = (uint16_t)sp;		/* SP */
-	TAILQ_INSERT_TAIL(&kern.rq, tp, r_link);
+	tp->rq = &kern.rq[Low];
+	TAILQ_INSERT_TAIL(tp->rq, tp, r_link);
 
 	SCHEDULE();
 }
@@ -193,7 +213,7 @@ wait(uint8_t chan)
 
 	if (kern.semaphore & _BV(chan)) {
 		/* semaphore busy, go into wait queue */
-		TAILQ_REMOVE(&kern.rq, kern.cur, r_link);
+		TAILQ_REMOVE(kern.cur->rq, kern.cur, r_link);
 		TAILQ_INSERT_TAIL(&kern.wq[chan], kern.cur, w_link);
 		SCHEDULE();
 	} else {
@@ -213,7 +233,7 @@ signal(uint8_t chan)
 	if ((tp = TAILQ_FIRST(&kern.wq[chan]))) {
 		/* release first waiting task from wait queue */
 		TAILQ_REMOVE(&kern.wq[chan], tp, w_link);
-		TAILQ_INSERT_TAIL(&kern.rq, tp, r_link);
+		TAILQ_INSERT_TAIL(kern.cur->rq, tp, r_link);
 		SCHEDULE();
 	} else {
 		/* clear semaphore and continue */
@@ -228,7 +248,7 @@ sleep(uint32_t sec, uint32_t usec)
 	cli();
 
 	kern.cur->release += SEC(sec) + USEC(usec);
-	TAILQ_REMOVE(&kern.rq, kern.cur, r_link);
+	TAILQ_REMOVE(kern.cur->rq, kern.cur, r_link);
 	TAILQ_INSERT_TAIL(&kern.tq, kern.cur, t_link);
 	SCHEDULE();
 }
@@ -246,7 +266,7 @@ suspend(void)
 	cli();
 
 	/* TODO: free memory */
-	TAILQ_REMOVE(&kern.rq, kern.cur, r_link);
+	TAILQ_REMOVE(kern.cur->rq, kern.cur, r_link);
 	SCHEDULE();
 }
 
