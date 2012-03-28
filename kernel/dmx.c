@@ -26,9 +26,9 @@ struct adcarg adcarg;
 struct ppmarg ppmarg = { adcarg.value };
 struct rgbarg rgbargs = { 0, 0, 0, adcarg.value };
 struct pwmarg pwmargs[] = {
-	{ &rgbargs.r, PB2, 1 },
-	{ &rgbargs.g, PB3, 2 },
-	{ &rgbargs.b, PB4, 3 }
+	{ &rgbargs.r, PB2 },
+	{ &rgbargs.g, PB3 },
+	{ &rgbargs.b, PB4 }
 };
 
 int
