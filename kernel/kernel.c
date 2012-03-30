@@ -58,6 +58,7 @@ struct kern {
 	struct task *cur;		/* current task */
 	uint16_t cycles;		/* clock high byte */
 	uint8_t semaphore;		/* bitmap */
+	uint8_t maxid;
 } kern;
 
 ISR(TIMER1_OVF_vect)
@@ -123,7 +124,7 @@ ISR(TIMER1_COMPA_vect, ISR_NAKED)
 }
 
 void
-init(uint8_t prio, uint8_t sema)
+init(uint8_t prio, uint8_t sema, uint8_t stack)
 {
 	uint8_t i;
 
@@ -160,12 +161,14 @@ init(uint8_t prio, uint8_t sema)
 	kern.idle->id = 0;
 	kern.idle->release = 0;
 	kern.idle->sp = SP;			/* not really needed */
+	kern.idle->stack = (uint8_t *)(RAMEND - stack + 1);
 	kern.idle->rq = &kern.rq[Low];
 	TAILQ_INSERT_TAIL(kern.idle->rq, kern.idle, r_link);
 	kern.cur = TAILQ_FIRST(kern.idle->rq);
 
 	kern.cycles = 0;
 	kern.semaphore = 0;
+	kern.maxid = 0;
 
 	sei();
 }
@@ -175,14 +178,13 @@ exec(void (*fun)(void *), void *args, uint8_t stack)
 {
 	struct task *tp;
 	uint8_t *sp;
-	static uint8_t id = 0;
 
 	cli();
 
 	/* allocate task memory */
 	tp = calloc(1, sizeof(struct task));
 	tp->stack = calloc(stack, sizeof(uint8_t));
-	sp = tp->stack + stack - 1;
+	sp = &tp->stack[stack - 1];
 
 	/* initialize stack */
 	*sp-- = LO8(fun);		/* PC(lo) */
@@ -197,7 +199,7 @@ exec(void (*fun)(void *), void *args, uint8_t stack)
 	sp -= 6;
 	memset(sp, 0, 6);		/* r26-r31 */
 
-	tp->id = ++id;
+	tp->id = ++kern.maxid;
 	tp->release = 0;
 	tp->sp = (uint16_t)sp;		/* SP */
 	tp->rq = &kern.rq[Low];
