@@ -18,9 +18,9 @@
 #ifndef __KERNEL_H
 #define __KERNEL_H
 
-#define MINSTACK 48
-#define DEFSTACK 96
-#define BIGSTACK 128
+#define MINSTACK 0x30
+#define DEFSTACK 0x40
+#define BIGSTACK 0x80
 
 #ifndef F_CPU
 #warning F_CPU not set, fallback to default: 16MHz
@@ -73,7 +73,7 @@ enum Prio { High, Low, nPrio };
 
 /* __BEGIN_DECLS */
 
-void init(uint8_t prio, uint8_t sema);
+void init(uint8_t prio, uint8_t sema, uint8_t stack);
 void exec(void (*fun)(void *), void *args, uint8_t stack);
 
 void wait(uint8_t chan);
