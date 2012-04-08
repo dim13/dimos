@@ -101,15 +101,14 @@ ISR(TIMER1_COMPA_vect, ISR_NAKED)
 	}
 
 	/* pick hightes rq */
-	rq = kern.idle->rq;
-	for (i = 0; i < nPrio; i++)
-		if (!TAILQ_EMPTY(&kern.rq[i])) {
-			rq = &kern.rq[i];
+	for (i = 0; i < nPrio; i++) {
+		rq = &kern.rq[i];
+		if (!TAILQ_EMPTY(rq))
 			break;
-		}
+	}
 
 	/* if none is ready, go idle */
-	if (rq == kern.idle->rq && TAILQ_EMPTY(rq))
+	if (TAILQ_EMPTY(rq))
 		TAILQ_INSERT_TAIL(kern.idle->rq, kern.idle, r_link);
 	
 	OCR1A = now + nexthit;
