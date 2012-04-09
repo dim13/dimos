@@ -114,13 +114,14 @@ ISR(TIMER1_COMPA_vect, ISR_NAKED)
 	/* if none is ready, go idle */
 	if (TAILQ_EMPTY(rq))
 		TAILQ_INSERT_TAIL(kern.idle->rq, kern.idle, r_link);
-	
-	OCR1A = now + nexthit;
 
 	/* switch context */
 	kern.cur->sp = SP;
 	kern.cur = TAILQ_FIRST(rq);
 	SP = kern.cur->sp;
+	
+	/* set timer */
+	OCR1A = TCNT1 + nexthit;
 
 	popa();
 	reti();
