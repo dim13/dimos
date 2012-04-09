@@ -59,6 +59,7 @@ struct kern {
 	uint16_t cycles;		/* clock high byte */
 	uint8_t semaphore;		/* bitmap */
 	uint8_t maxid;
+	uint8_t reboot;
 } kern;
 
 ISR(TIMER1_OVF_vect)
@@ -79,6 +80,9 @@ ISR(TIMER1_COMPA_vect, ISR_NAKED)
 	/* grab time as early as possible */
 	now = NOW(kern.cycles, TCNT1);
 	nexthit = UINT16_MAX;
+
+	if (!kern.reboot)
+		wdt_reset();
 
 	/* release waiting tasks */
 	TAILQ_FOREACH_SAFE(tp, &kern.tq, t_link, tmp) {
@@ -168,6 +172,9 @@ init(uint8_t prio, uint8_t sema, uint8_t stack)
 	kern.cycles = 0;
 	kern.semaphore = 0;
 	kern.maxid = 0;
+
+	kern.reboot = 0;
+	wdt_enable(WDTO_15MS);
 
 	sei();
 }
@@ -286,7 +293,7 @@ running(void)
 void
 reboot(void)
 {
-	wdt_enable(WDTO_15MS);
+	kern.reboot = 1;
 }
 
 void
