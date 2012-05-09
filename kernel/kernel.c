@@ -36,7 +36,6 @@
 #define NOW(hi, lo)		(((uint32_t)(hi) << 0x10) | (lo))
 #define DISTANCE(from, to)	((int32_t)((to) - (from)))
 #define SCHEDULE		TIMER1_COMPA_vect
-#define MAXROUND		0x10
 
 struct task {
 	uint32_t release;		/* release time */
