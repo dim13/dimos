@@ -36,12 +36,15 @@
 #define NOW(hi, lo)		(((uint32_t)(hi) << 0x10) | (lo))
 #define DISTANCE(from, to)	((int32_t)((to) - (from)))
 #define SCHEDULE		TIMER1_COMPA_vect
+#define MAXROUND		0x10
 
 struct task {
 	uint32_t release;		/* release time */
 	uint16_t sp;			/* stack pointer */
 	uint8_t *stack;			/* stack area */
 	uint8_t id;			/* task id */
+	uint8_t prio;
+	uint8_t defprio;
 	struct queue *rq;
 	TAILQ_ENTRY(task) r_link;
 	TAILQ_ENTRY(task) t_link;
@@ -89,7 +92,8 @@ ISR(TIMER1_COMPA_vect, ISR_NAKED)
 		dist = DISTANCE(now, tp->release);
 		if (dist <= 0) {
 			TAILQ_REMOVE(&kern.tq, tp, t_link);
-			tp->rq = &kern.rq[High];
+			tp->prio = tp->defprio;
+			tp->rq = &kern.rq[tp->prio];
 			TAILQ_INSERT_TAIL(tp->rq, tp, r_link);
 		} else if (dist < nexthit)
 			nexthit = dist;
@@ -98,10 +102,10 @@ ISR(TIMER1_COMPA_vect, ISR_NAKED)
 	/* reschedule current task if it's still at head of runq */
 	if (kern.cur == TAILQ_FIRST(kern.cur->rq)) {
 		TAILQ_REMOVE(kern.cur->rq, kern.cur, r_link);
-		kern.cur->rq = &kern.rq[Low];
-		/* skipping idle task */
-		if (kern.cur != kern.idle)
-			TAILQ_INSERT_TAIL(kern.cur->rq, kern.cur, r_link);
+		if (kern.cur->prio < RR)
+			kern.cur->prio++;
+		kern.cur->rq = &kern.rq[kern.cur->prio];
+		TAILQ_INSERT_TAIL(kern.cur->rq, kern.cur, r_link);
 	}
 
 	/* pick hightes rq */
@@ -110,10 +114,6 @@ ISR(TIMER1_COMPA_vect, ISR_NAKED)
 		if (!TAILQ_EMPTY(rq))
 			break;
 	}
-
-	/* if none is ready, go idle */
-	if (TAILQ_EMPTY(rq))
-		TAILQ_INSERT_TAIL(kern.idle->rq, kern.idle, r_link);
 
 	/* switch context */
 	kern.cur->sp = SP;
@@ -128,7 +128,7 @@ ISR(TIMER1_COMPA_vect, ISR_NAKED)
 }
 
 void
-init(uint8_t prio, uint8_t sema, uint8_t stack)
+init(uint8_t sema, uint8_t stack)
 {
 	uint8_t i;
 
@@ -150,8 +150,8 @@ init(uint8_t prio, uint8_t sema, uint8_t stack)
 
 	/* init queues */
 
-	kern.rq = calloc(prio, sizeof(struct queue));
-	for (i = 0; i < prio; i++)
+	kern.rq = calloc(nPrio, sizeof(struct queue));
+	for (i = 0; i < nPrio; i++)
 		TAILQ_INIT(&kern.rq[i]);
 
 	kern.wq = calloc(sema, sizeof(struct queue));
@@ -162,11 +162,13 @@ init(uint8_t prio, uint8_t sema, uint8_t stack)
 
 	/* init idle task */
 	kern.idle = calloc(1, sizeof(struct task));
+	kern.idle->prio = Idle;
+	kern.idle->defprio = Idle;
 	kern.idle->id = 0;
 	kern.idle->release = 0;
 	kern.idle->sp = SP;			/* not really needed */
 	kern.idle->stack = (uint8_t *)(RAMEND - stack + 1);
-	kern.idle->rq = &kern.rq[Low];
+	kern.idle->rq = &kern.rq[kern.idle->prio];
 	TAILQ_INSERT_TAIL(kern.idle->rq, kern.idle, r_link);
 	kern.cur = TAILQ_FIRST(kern.idle->rq);
 
@@ -181,7 +183,7 @@ init(uint8_t prio, uint8_t sema, uint8_t stack)
 }
 
 void
-exec(void (*fun)(void *), void *args, uint8_t stack)
+exec(void (*fun)(void *), void *args, uint8_t stack, uint8_t prio)
 {
 	struct task *tp;
 	uint8_t *sp;
@@ -206,10 +208,12 @@ exec(void (*fun)(void *), void *args, uint8_t stack)
 	sp -= 6;
 	memset(sp, 0, 6);		/* r26-r31 */
 
+	tp->prio = prio;
+	tp->defprio = prio;
 	tp->id = ++kern.maxid;
 	tp->release = 0;
 	tp->sp = (uint16_t)sp;		/* SP */
-	tp->rq = &kern.rq[Low];
+	tp->rq = &kern.rq[tp->prio];
 	TAILQ_INSERT_TAIL(tp->rq, tp, r_link);
 
 	SCHEDULE();

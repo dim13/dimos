@@ -34,17 +34,17 @@ struct pwmarg pwmargs[] = {
 int
 main()
 {
-	init(nPrio, nSema, BIGSTACK);
+	init(nSema, BIGSTACK);
 	uart_init();
 	lcd_init();
 
-	exec(heartbeat, NULL, DEFSTACK);
-	exec(rgb, &rgbargs, BIGSTACK);
-	exec(pwm, &pwmargs[0], DEFSTACK);
-	exec(pwm, &pwmargs[1], DEFSTACK);
-	exec(pwm, &pwmargs[2], DEFSTACK);
-	exec(adc, &adcarg, BIGSTACK);
-	exec(clock, NULL, BIGSTACK);
+	exec(heartbeat, NULL, DEFSTACK, Low);
+	exec(rgb, &rgbargs, BIGSTACK, High);
+	exec(pwm, &pwmargs[0], DEFSTACK, RT);
+	exec(pwm, &pwmargs[1], DEFSTACK, RT);
+	exec(pwm, &pwmargs[2], DEFSTACK, RT);
+	exec(adc, &adcarg, BIGSTACK, Low);
+	exec(clock, NULL, BIGSTACK, Low);
 #if 0
 	exec(ctrl, NULL, BIGSTACK);
 	exec(cmd, &rgbargs, DEFSTACK);
