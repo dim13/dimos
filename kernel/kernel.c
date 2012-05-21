@@ -37,7 +37,7 @@
 #define DISTANCE(from, to)	((int32_t)((to) - (from)))
 #define SCHEDULE		TIMER1_COMPA_vect
 #define QUANT			UINT16_MAX
-#define MQUANT			(QUANT >> 10)
+#define MINQUANT		(QUANT >> 12)
 
 struct task {
 	uint32_t release;		/* release time */
@@ -68,12 +68,23 @@ struct kern {
 
 ISR(TIMER1_OVF_vect)
 {
+	if (!kern.reboot)
+		wdt_reset();
+
 	++kern.cycles;
+
+	/* reschedule current task if it's still at head of runq */
+	if (kern.cur == TAILQ_FIRST(kern.cur->rq)) {
+		TAILQ_REMOVE(kern.cur->rq, kern.cur, r_link);
+		if (kern.cur->prio > RT && kern.cur->prio < RR)
+			kern.cur->prio++;
+		kern.cur->rq = &kern.rq[kern.cur->prio];
+		TAILQ_INSERT_TAIL(kern.cur->rq, kern.cur, r_link);
+	}
 }
 
 ISR(TIMER1_COMPA_vect, ISR_NAKED)
 {
-	struct queue *rq;
 	struct task *tp, *tmp;
 	uint32_t now;
 	uint16_t nexthit;
@@ -85,13 +96,10 @@ ISR(TIMER1_COMPA_vect, ISR_NAKED)
 	now = NOW(kern.cycles, TCNT1);
 	nexthit = QUANT;
 
-	if (!kern.reboot)
-		wdt_reset();
-
 	/* release waiting tasks */
 	TAILQ_FOREACH_SAFE(tp, &kern.tq, t_link, tmp) {
 		dist = DISTANCE(now, tp->release);
-		if (dist <= 0) {
+		if (dist <= MINQUANT) {
 			TAILQ_REMOVE(&kern.tq, tp, t_link);
 			tp->prio = tp->defprio;
 			tp->rq = &kern.rq[tp->prio];
@@ -100,30 +108,18 @@ ISR(TIMER1_COMPA_vect, ISR_NAKED)
 			nexthit = dist;
 	}
 
-	/* reschedule current task if it's still at head of runq */
-	if (kern.cur == TAILQ_FIRST(kern.cur->rq)) {
-		TAILQ_REMOVE(kern.cur->rq, kern.cur, r_link);
-		if (kern.cur->prio > RT && kern.cur->prio < RR)
-			kern.cur->prio++;
-		kern.cur->rq = &kern.rq[kern.cur->prio];
-		TAILQ_INSERT_TAIL(kern.cur->rq, kern.cur, r_link);
-	}
-
 	/* pick hightes rq */
 	for (i = 0; i < nPrio; i++) {
-		rq = &kern.rq[i];
-		if (!TAILQ_EMPTY(rq))
+		if (!TAILQ_EMPTY(&kern.rq[i])) {
+			/* switch context */
+			kern.cur->sp = SP;
+			kern.cur = TAILQ_FIRST(&kern.rq[i]);
+			SP = kern.cur->sp;
 			break;
+		}
 	}
 
-	/* switch context */
-	kern.cur->sp = SP;
-	kern.cur = TAILQ_FIRST(rq);
-	SP = kern.cur->sp;
-	
 	/* set timer */
-	if (nexthit < MQUANT)
-		nexthit = MQUANT;
 	OCR1A = TCNT1 + nexthit;
 
 	popa();
