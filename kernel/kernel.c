@@ -36,6 +36,8 @@
 #define NOW(hi, lo)		(((uint32_t)(hi) << 0x10) | (lo))
 #define DISTANCE(from, to)	((int32_t)((to) - (from)))
 #define SCHEDULE		TIMER1_COMPA_vect
+#define QUANT			UINT16_MAX
+#define MQUANT			(QUANT >> 10)
 
 struct task {
 	uint32_t release;		/* release time */
@@ -81,7 +83,7 @@ ISR(TIMER1_COMPA_vect, ISR_NAKED)
 	pusha();
 	/* grab time as early as possible */
 	now = NOW(kern.cycles, TCNT1);
-	nexthit = UINT16_MAX;
+	nexthit = QUANT;
 
 	if (!kern.reboot)
 		wdt_reset();
@@ -120,6 +122,8 @@ ISR(TIMER1_COMPA_vect, ISR_NAKED)
 	SP = kern.cur->sp;
 	
 	/* set timer */
+	if (nexthit < MQUANT)
+		nexthit = MQUANT;
 	OCR1A = TCNT1 + nexthit;
 
 	popa();
