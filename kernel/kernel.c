@@ -36,8 +36,6 @@
 #define NOW(hi, lo)		(((uint32_t)(hi) << 0x10) | (lo))
 #define DISTANCE(from, to)	((int32_t)((to) - (from)))
 #define SCHEDULE		TIMER1_COMPA_vect
-#define QUANT			UINT16_MAX
-#define MINQUANT		(QUANT >> 12)
 
 struct task {
 	uint32_t release;		/* release time */
@@ -72,6 +70,33 @@ ISR(TIMER1_OVF_vect)
 		wdt_reset();
 
 	++kern.cycles;
+}
+
+ISR(TIMER1_COMPA_vect, ISR_NAKED)
+{
+	struct task *tp, *tmp;
+	struct queue *rq;
+	uint32_t now;
+	uint16_t nexthit;
+	int32_t dist;
+
+	pusha();
+
+	/* grab time as early as possible */
+	now = NOW(kern.cycles, TCNT1);
+	nexthit = UINT16_MAX;
+
+	/* release waiting tasks */
+	TAILQ_FOREACH_SAFE(tp, &kern.tq, t_link, tmp) {
+		dist = DISTANCE(now, tp->release);
+		if (dist <= 0) {
+			TAILQ_REMOVE(&kern.tq, tp, t_link);
+			tp->prio = tp->defprio;
+			tp->rq = &kern.rq[tp->prio];
+			TAILQ_INSERT_TAIL(tp->rq, tp, r_link);
+		} else if (dist < nexthit)
+			nexthit = dist;
+	}
 
 	/* reschedule current task if it's still at head of runq */
 	if (kern.cur == TAILQ_FIRST(kern.cur->rq)) {
@@ -81,43 +106,15 @@ ISR(TIMER1_OVF_vect)
 		kern.cur->rq = &kern.rq[kern.cur->prio];
 		TAILQ_INSERT_TAIL(kern.cur->rq, kern.cur, r_link);
 	}
-}
 
-ISR(TIMER1_COMPA_vect, ISR_NAKED)
-{
-	struct task *tp, *tmp;
-	uint32_t now;
-	uint16_t nexthit;
-	int32_t dist;
-	uint8_t i;
+	/* pick hightes rq, cannot fail */
+	for (rq = kern.rq; TAILQ_EMPTY(rq); rq++)
+		;
 
-	pusha();
-	/* grab time as early as possible */
-	now = NOW(kern.cycles, TCNT1);
-	nexthit = QUANT;
-
-	/* release waiting tasks */
-	TAILQ_FOREACH_SAFE(tp, &kern.tq, t_link, tmp) {
-		dist = DISTANCE(now, tp->release);
-		if (dist <= MINQUANT) {
-			TAILQ_REMOVE(&kern.tq, tp, t_link);
-			tp->prio = tp->defprio;
-			tp->rq = &kern.rq[tp->prio];
-			TAILQ_INSERT_TAIL(tp->rq, tp, r_link);
-		} else if (dist < nexthit)
-			nexthit = dist;
-	}
-
-	/* pick hightes rq */
-	for (i = 0; i < nPrio; i++) {
-		if (!TAILQ_EMPTY(&kern.rq[i])) {
-			/* switch context */
-			kern.cur->sp = SP;
-			kern.cur = TAILQ_FIRST(&kern.rq[i]);
-			SP = kern.cur->sp;
-			break;
-		}
-	}
+	/* switch context */
+	kern.cur->sp = SP;
+	kern.cur = TAILQ_FIRST(rq);
+	SP = kern.cur->sp;
 
 	/* set timer */
 	OCR1A = TCNT1 + nexthit;
@@ -176,7 +173,7 @@ init(uint8_t sema, uint8_t stack)
 	kern.maxid = 0;
 
 	kern.reboot = 0;
-	wdt_enable(WDTO_15MS);
+	wdt_enable(WDTO_500MS);
 
 	sei();
 }
@@ -269,6 +266,7 @@ void
 yield(void)
 {
 	cli();
+
 	SCHEDULE();
 }
 

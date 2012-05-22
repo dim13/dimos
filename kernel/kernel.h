@@ -18,9 +18,9 @@
 #ifndef __KERNEL_H
 #define __KERNEL_H
 
-#define MINSTACK 0x30
-#define DEFSTACK 0x40
-#define BIGSTACK 0x80
+#define MINSTACK 0x3f
+#define DEFSTACK 0x7f
+#define BIGSTACK 0xff
 
 #ifndef F_CPU
 #warning F_CPU not set, fallback to default: 16MHz
