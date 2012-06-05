@@ -70,6 +70,15 @@ ISR(TIMER1_OVF_vect)
 		wdt_reset();
 
 	++kern.cycles;
+
+	/* reschedule current task if it's still at head of runq */
+	if (kern.cur == TAILQ_FIRST(kern.cur->rq)) {
+		TAILQ_REMOVE(kern.cur->rq, kern.cur, r_link);
+		if (kern.cur->prio > RT && kern.cur->prio < RR)
+			kern.cur->prio++;
+		kern.cur->rq = &kern.rq[kern.cur->prio];
+		TAILQ_INSERT_TAIL(kern.cur->rq, kern.cur, r_link);
+	}
 }
 
 ISR(TIMER1_COMPA_vect, ISR_NAKED)
@@ -96,15 +105,6 @@ ISR(TIMER1_COMPA_vect, ISR_NAKED)
 			TAILQ_INSERT_TAIL(tp->rq, tp, r_link);
 		} else if (dist < nexthit)
 			nexthit = dist;
-	}
-
-	/* reschedule current task if it's still at head of runq */
-	if (kern.cur == TAILQ_FIRST(kern.cur->rq)) {
-		TAILQ_REMOVE(kern.cur->rq, kern.cur, r_link);
-		if (kern.cur->prio > RT && kern.cur->prio < RR)
-			kern.cur->prio++;
-		kern.cur->rq = &kern.rq[kern.cur->prio];
-		TAILQ_INSERT_TAIL(kern.cur->rq, kern.cur, r_link);
 	}
 
 	/* pick hightes rq, cannot fail */
