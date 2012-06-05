@@ -64,23 +64,6 @@ struct kern {
 	uint8_t reboot;
 } kern;
 
-ISR(TIMER1_OVF_vect)
-{
-	if (!kern.reboot)
-		wdt_reset();
-
-	++kern.cycles;
-
-	/* reschedule current task if it's still at head of runq */
-	if (kern.cur == TAILQ_FIRST(kern.cur->rq)) {
-		TAILQ_REMOVE(kern.cur->rq, kern.cur, r_link);
-		if (kern.cur->prio > RT && kern.cur->prio < RR)
-			kern.cur->prio++;
-		kern.cur->rq = &kern.rq[kern.cur->prio];
-		TAILQ_INSERT_TAIL(kern.cur->rq, kern.cur, r_link);
-	}
-}
-
 ISR(TIMER1_COMPA_vect, ISR_NAKED)
 {
 	struct task *tp, *tmp;
@@ -121,6 +104,26 @@ ISR(TIMER1_COMPA_vect, ISR_NAKED)
 
 	popa();
 	reti();
+}
+
+ISR(TIMER1_OVF_vect)
+{
+	if (!kern.reboot)
+		wdt_reset();
+
+	++kern.cycles;
+
+	/* reschedule current task if it's still at head of runq */
+	if (kern.cur == TAILQ_FIRST(kern.cur->rq)) {
+		TAILQ_REMOVE(kern.cur->rq, kern.cur, r_link);
+		if (kern.cur->prio > RT && kern.cur->prio < RR)
+			kern.cur->prio++;
+		kern.cur->rq = &kern.rq[kern.cur->prio];
+		TAILQ_INSERT_TAIL(kern.cur->rq, kern.cur, r_link);
+
+		SCHEDULE();
+	}
+
 }
 
 void
