@@ -34,7 +34,7 @@
 #define LO8(x)			((uint8_t)((uint16_t)(x)))
 #define HI8(x)			((uint8_t)((uint16_t)(x) >> 8))
 #define NOW(hi, lo)		(((uint32_t)(hi) << 0x10) | (lo))
-#define DISTANCE(from, to)	((int32_t)((to) - (from)))
+#define DIST(from, to)		((int32_t)((to) - (from)))
 #define SLICE			MSEC(1)		/* 1kHz */
 
 struct task {
@@ -96,29 +96,23 @@ ISR(TIMER1_OVF_vect)
 
 ISR(TIMER1_COMPA_vect)
 {
-	struct task *tp, *tmp;
+	struct task *tp;
 	uint32_t now;
-	uint16_t nexthit;
-	int32_t dist;
 
 	/* grab time as early as possible */
 	now = NOW(kern.cycles, TCNT1);
-	nexthit = UINT16_MAX;
 
 	/* release waiting tasks */
-	TAILQ_FOREACH_SAFE(tp, &kern.tq, t_link, tmp) {
-		dist = DISTANCE(now, tp->release);
-		if (dist <= 0) {
-			TAILQ_REMOVE(&kern.tq, tp, t_link);
-			tp->prio = tp->defprio;
-			tp->rq = &kern.rq[tp->prio];
-			TAILQ_INSERT_TAIL(tp->rq, tp, r_link);
-		} else if (dist < nexthit)
-			nexthit = dist;
+	while ((tp = TAILQ_FIRST(&kern.tq)) && DIST(now, tp->release) <= 0) {
+		TAILQ_REMOVE(&kern.tq, tp, t_link);
+		tp->prio = tp->defprio;
+		tp->rq = &kern.rq[tp->prio];
+		TAILQ_INSERT_TAIL(tp->rq, tp, r_link);
 	}
 
 	/* set next wakeup timer */
-	OCR1A = TCNT1 + nexthit;
+	if ((tp = TAILQ_FIRST(&kern.tq)))
+		OCR1A = TCNT1 + DIST(now, tp->release);
 }
 
 ISR(TIMER1_COMPB_vect)
@@ -271,11 +265,23 @@ signal(uint8_t chan)
 void
 sleep(uint32_t sec, uint32_t usec)
 {
+	struct task *tp;
+
 	cli();
 
 	kern.cur->release += SEC(sec) + USEC(usec);
 	TAILQ_REMOVE(kern.cur->rq, kern.cur, r_link);
-	TAILQ_INSERT_TAIL(&kern.tq, kern.cur, t_link);
+
+	/* find right place */
+	TAILQ_FOREACH(tp, &kern.tq, t_link)
+		if (tp->release > kern.cur->release)
+			break;
+	
+	if (tp)
+		TAILQ_INSERT_BEFORE(tp, kern.cur, t_link);
+	else
+		TAILQ_INSERT_TAIL(&kern.tq, kern.cur, t_link);
+
 	swtch();
 
 	sei();
