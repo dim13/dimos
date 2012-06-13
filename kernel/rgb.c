@@ -44,7 +44,7 @@ rgb(void *arg)
 		a->b = b;
 		signal(RGB);
 
-		sleep(0, 40000);
+		sleep(0, 234375);
 	}
 }
 

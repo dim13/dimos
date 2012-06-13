@@ -35,7 +35,7 @@
 #define HI8(x)			((uint8_t)((uint16_t)(x) >> 8))
 #define NOW(hi, lo)		(((uint32_t)(hi) << 0x10) | (lo))
 #define SPAN(from, to)		((int32_t)((to) - (from)))
-#define SLICE			MSEC(1)		/* 1kHz */
+#define SLICE			USEC(100)	/* 10kHz */
 
 struct task {
 	uint32_t release;		/* release time */
