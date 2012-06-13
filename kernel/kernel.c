@@ -34,7 +34,7 @@
 #define LO8(x)			((uint8_t)((uint16_t)(x)))
 #define HI8(x)			((uint8_t)((uint16_t)(x) >> 8))
 #define NOW(hi, lo)		(((uint32_t)(hi) << 0x10) | (lo))
-#define DIST(from, to)		((int32_t)((to) - (from)))
+#define SPAN(from, to)		((int32_t)((to) - (from)))
 #define SLICE			MSEC(1)		/* 1kHz */
 
 struct task {
@@ -103,7 +103,7 @@ ISR(TIMER1_COMPA_vect)
 	now = NOW(kern.cycles, TCNT1);
 
 	/* release waiting tasks */
-	while ((tp = TAILQ_FIRST(&kern.tq)) && DIST(now, tp->release) <= 0) {
+	while ((tp = TAILQ_FIRST(&kern.tq)) && SPAN(now, tp->release) <= 0) {
 		TAILQ_REMOVE(&kern.tq, tp, t_link);
 		tp->prio = tp->defprio;
 		tp->rq = &kern.rq[tp->prio];
@@ -112,7 +112,7 @@ ISR(TIMER1_COMPA_vect)
 
 	/* set next wakeup timer */
 	if ((tp = TAILQ_FIRST(&kern.tq)))
-		OCR1A = TCNT1 + DIST(now, tp->release);
+		OCR1A = TCNT1 + SPAN(now, tp->release);
 }
 
 ISR(TIMER1_COMPB_vect)
