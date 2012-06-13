@@ -274,7 +274,7 @@ sleep(uint32_t sec, uint32_t usec)
 
 	/* find right place */
 	TAILQ_FOREACH(tp, &kern.tq, t_link)
-		if (tp->release > kern.cur->release)
+		if (SPAN(tp->release, kern.cur->release) < 0)
 			break;
 	
 	if (tp)
