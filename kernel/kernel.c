@@ -217,8 +217,6 @@ exec(void (*fun)(void *), void *args, uint8_t stack, uint8_t prio)
 	tp->rq = &kern.rq[tp->prio];
 	TAILQ_INSERT_TAIL(tp->rq, tp, r_link);
 
-	swtch();
-
 	sei();
 }
 
