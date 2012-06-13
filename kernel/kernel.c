@@ -250,10 +250,9 @@ signal(uint8_t chan)
 	if ((tp = TAILQ_FIRST(&kern.wq[chan]))) {
 		/* release first waiting task from wait queue */
 		TAILQ_REMOVE(&kern.wq[chan], tp, w_link);
-		kern.cur->prio = kern.cur->defprio;
-		kern.cur->rq = &kern.rq[kern.cur->prio];
-		TAILQ_INSERT_TAIL(kern.cur->rq, tp, r_link);
-		swtch();
+		tp->prio = tp->defprio;
+		tp->rq = &kern.rq[tp->prio];
+		TAILQ_INSERT_TAIL(tp->rq, tp, r_link);
 	} else {
 		/* clear semaphore and continue */
 		kern.semaphore &= ~_BV(chan);
