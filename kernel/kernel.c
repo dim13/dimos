@@ -105,7 +105,9 @@ ISR(TIMER1_COMPA_vect)
 	/* release waiting tasks */
 	while ((tp = TAILQ_FIRST(&kern.tq)) && SPAN(now, tp->release) <= 0) {
 		TAILQ_REMOVE(&kern.tq, tp, t_link);
-		tp->prio = tp->defprio;
+		/* raise priority */
+		if (tp->prio > tp->defprio && tp->prio < Idle + 1)
+			tp->prio--;
 		tp->rq = &kern.rq[tp->prio];
 		TAILQ_INSERT_TAIL(tp->rq, tp, r_link);
 	}
@@ -119,7 +121,8 @@ ISR(TIMER1_COMPB_vect)
 {
 	/* reschedule current task if it've used its time slice */
 	TAILQ_REMOVE(kern.cur->rq, kern.cur, r_link);
-	if (kern.cur->prio > RT && kern.cur->prio < RR)
+	/* lover priority */
+	if (kern.cur->prio > kern.cur->defprio && kern.cur->prio < Idle + 1)
 		kern.cur->prio++;
 	kern.cur->rq = &kern.rq[kern.cur->prio];
 	TAILQ_INSERT_TAIL(kern.cur->rq, kern.cur, r_link);
@@ -248,7 +251,9 @@ signal(uint8_t chan)
 	if ((tp = TAILQ_FIRST(&kern.wq[chan]))) {
 		/* release first waiting task from wait queue */
 		TAILQ_REMOVE(&kern.wq[chan], tp, w_link);
-		tp->prio = tp->defprio;
+		/* raise priority */
+		if (tp->prio > tp->defprio && tp->prio < Idle + 1)
+			tp->prio--;
 		tp->rq = &kern.rq[tp->prio];
 		TAILQ_INSERT_TAIL(tp->rq, tp, r_link);
 	} else {
