@@ -121,7 +121,7 @@ ISR(TIMER1_COMPB_vect)
 {
 	/* reschedule current task if it've used its time slice */
 	TAILQ_REMOVE(kern.cur->rq, kern.cur, r_link);
-	/* lover priority */
+	/* lower priority */
 	if (kern.cur->prio > kern.cur->defprio && kern.cur->prio < Idle + 1)
 		kern.cur->prio++;
 	kern.cur->rq = &kern.rq[kern.cur->prio];
