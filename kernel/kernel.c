@@ -43,7 +43,6 @@ struct task {
 	uint8_t *stack;			/* stack area */
 	uint8_t id;			/* task id */
 	uint8_t prio;
-	uint8_t defprio;
 	struct queue *rq;
 	TAILQ_ENTRY(task) r_link;
 	TAILQ_ENTRY(task) t_link;
@@ -106,7 +105,7 @@ ISR(TIMER1_COMPA_vect)
 	while ((tp = TAILQ_FIRST(&kern.tq)) && SPAN(now, tp->release) <= 0) {
 		TAILQ_REMOVE(&kern.tq, tp, t_link);
 		/* raise priority */
-		if (tp->prio > tp->defprio && tp->prio < Idle + 1)
+		if (tp->prio > High)
 			tp->prio--;
 		tp->rq = &kern.rq[tp->prio];
 		TAILQ_INSERT_TAIL(tp->rq, tp, r_link);
@@ -122,7 +121,7 @@ ISR(TIMER1_COMPB_vect)
 	/* reschedule current task if it've used its time slice */
 	TAILQ_REMOVE(kern.cur->rq, kern.cur, r_link);
 	/* lower priority */
-	if (kern.cur->prio > kern.cur->defprio && kern.cur->prio < Idle + 1)
+	if (kern.cur->prio < Low)
 		kern.cur->prio++;
 	kern.cur->rq = &kern.rq[kern.cur->prio];
 	TAILQ_INSERT_TAIL(kern.cur->rq, kern.cur, r_link);
@@ -167,7 +166,6 @@ init(uint8_t sema, uint8_t stack)
 	/* init idle task */
 	kern.idle = calloc(1, sizeof(struct task));
 	kern.idle->prio = Idle;
-	kern.idle->defprio = Idle;
 	kern.idle->id = 0;
 	kern.idle->release = 0;
 	kern.idle->sp = SP;			/* not really needed */
@@ -187,7 +185,7 @@ init(uint8_t sema, uint8_t stack)
 }
 
 void
-exec(void (*fun)(void *), void *args, uint8_t stack, uint8_t prio)
+exec(void (*fun)(void *), void *args, uint8_t stack)
 {
 	struct task *tp;
 	uint8_t *sp;
@@ -212,8 +210,7 @@ exec(void (*fun)(void *), void *args, uint8_t stack, uint8_t prio)
 	sp -= 6;
 	memset(sp, 0, 6);		/* r26-r31 */
 
-	tp->prio = prio;
-	tp->defprio = prio;
+	tp->prio = High;
 	tp->id = ++kern.maxid;
 	tp->release = 0;
 	tp->sp = (uint16_t)sp;		/* SP */
@@ -252,7 +249,7 @@ signal(uint8_t chan)
 		/* release first waiting task from wait queue */
 		TAILQ_REMOVE(&kern.wq[chan], tp, w_link);
 		/* raise priority */
-		if (tp->prio > tp->defprio && tp->prio < Idle + 1)
+		if (tp->prio > High)
 			tp->prio--;
 		tp->rq = &kern.rq[tp->prio];
 		TAILQ_INSERT_TAIL(tp->rq, tp, r_link);

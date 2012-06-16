@@ -69,12 +69,12 @@
 #define MSEC(T)	((uint32_t)(T) * kHz)
 #define SEC(T)	((uint32_t)(T) * Hz)
 
-enum Prio { RT, High, Low, RR, Idle, nPrio };
+enum Prio { High, Mid, Low, Idle, nPrio };
 
 /* __BEGIN_DECLS */
 
 void init(uint8_t sema, uint8_t stack);
-void exec(void (*fun)(void *), void *args, uint8_t stack, uint8_t prio);
+void exec(void (*fun)(void *), void *args, uint8_t stack);
 
 void wait(uint8_t chan);
 void signal(uint8_t chan);
