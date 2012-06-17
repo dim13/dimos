@@ -45,8 +45,8 @@ main()
 	exec(pwm, &pwmargs[2], DEFSTACK);
 	exec(adc, &adcarg, BIGSTACK);
 	exec(clock, NULL, BIGSTACK);
+	exec(ctrl, NULL, DEFSTACK);
 #if 0
-	exec(ctrl, NULL, BIGSTACK);
 	exec(cmd, &rgbargs, DEFSTACK);
 	exec(ppm, &ppmarg, DEFSTACK);
 #endif

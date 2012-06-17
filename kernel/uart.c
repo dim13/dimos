@@ -19,7 +19,7 @@
 #define BAUD 9600
 #endif
 
-#define USE_RXCIE 1
+#define USE_RXCIE 0
 
 #include <stdint.h>
 #include <stdio.h>
@@ -81,11 +81,11 @@ uart_init(void)
 #endif
 	UBRR0H = UBRRH_VALUE;
 	UBRR0L = UBRRL_VALUE;
-	#if USE_U2X
+#if USE_U2X
 	UCSR0A |= _BV(U2X0);
-	#else
+#else
 	UCSR0A &= ~_BV(U2X0);
-	#endif
+#endif
 
 	uart_stream = fdevopen(uart_putchar, uart_getchar);
 	stdin = uart_stream;
@@ -109,14 +109,12 @@ uart_getchar(FILE *fd)
 	char c;
 
 	loop_until_bit_is_set(UCSR0A, RXC0);
+	c = UDR0;
 
 	if (bit_is_set(UCSR0A, FE0))
 		return -2;		/* EOF */
 	if (bit_is_set(UCSR0A, DOR0))
 		return -1;		/* ERR */
-
-	c = UDR0;
-	uart_putchar(c, fd);		/* ECHO */
 
 	switch (c) {
 	case '\r':

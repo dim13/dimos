@@ -25,24 +25,45 @@ void
 ctrl(void *arg)
 {
 	int c;
+	uint8_t	*p;
+	uint8_t n, i, k;
 
 	for (;;) {
 		printf("> ");
 		fflush(stdout);
-		c = getc(stdin);
-		printf("\n");
-
-		switch (c) {
+		switch ((c = getchar())) {
+		case 'R':
+		case 'r':
 		case '-':
 			reboot();
 			break;
+		case 'D':
+		case 'd':
+			for (p = (uint8_t *)0; p <= (uint8_t *)RAMEND; p++)
+				putchar(*p);
+			break;	
+		case 'N':
 		case 'n':
-			printf("now: %ld\n", now());
+			printf("%8lx\n", now());
+			break;
+		case 'S':
+		case 's':
+			n = sysrq(nTask, 0);
+			for (i = 0; i < n; i++) {
+				k = sysrq(Prio, i);
+				printf("%d (%d) ", i, k);
+			}
+			printf("\n");
+			break;
+		case -2:
+			puts("EOF");
+			break;
+		case -1:
+			puts("ERR");
 			break;
 		default:
+			puts("?");
 			break;
 		}
-
-		yield();
 	}
 }

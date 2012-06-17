@@ -70,6 +70,7 @@
 #define SEC(T)	((uint32_t)(T) * Hz)
 
 enum Prio { High, Mid, Low, Idle, nPrio };
+enum SysRQ { nTask, Prio };
 
 /* __BEGIN_DECLS */
 
@@ -85,6 +86,7 @@ void yield(void);
 
 uint32_t now(void);
 uint8_t running(void);
+uint8_t sysrq(uint8_t req, uint8_t id);
 
 void reboot(void);
 void idle(void);
