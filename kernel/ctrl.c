@@ -29,8 +29,6 @@ ctrl(void *arg)
 	uint8_t n, i, k;
 
 	for (;;) {
-		printf("> ");
-		fflush(stdout);
 		switch ((c = getchar())) {
 		case 'R':
 		case 'r':
