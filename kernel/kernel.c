@@ -35,7 +35,8 @@
 #define HI8(x)			((uint8_t)((uint16_t)(x) >> 8))
 #define NOW(hi, lo)		(((uint32_t)(hi) << 0x10) | (lo))
 #define SPAN(from, to)		((int32_t)((to) - (from)))
-#define SLICE			USEC(100)	/* 10kHz */
+#define SLICE			MSEC(1)
+#define TIMEOUT			WDTO_500MS
 
 struct task {
 	uint32_t release;		/* release time */
@@ -47,6 +48,7 @@ struct task {
 	TAILQ_ENTRY(task) r_link;
 	TAILQ_ENTRY(task) t_link;
 	TAILQ_ENTRY(task) w_link;
+	TAILQ_ENTRY(task) a_link;
 };
 
 TAILQ_HEAD(queue, task);
@@ -55,6 +57,7 @@ struct kern {
 	struct queue *rq;		/* run queue */
 	struct queue *wq;		/* wait queues */
 	struct queue tq;		/* time queue */
+	struct queue all;		/* all tasks */
 	struct task *idle;
 	struct task *cur;		/* current task */
 	uint16_t cycles;		/* clock high byte */
@@ -147,7 +150,7 @@ init(uint8_t sema, uint8_t stack)
 	TCNT1 = 0;				/* reset timer */
 	TCCR1A = 0;				/* normal operation */
 	TCCR1B = TIMER_FLAGS;			/* prescale */
-	TIMSK1 = _BV(OCIE1A)|_BV(OCIE1B)|_BV(TOIE1);	/* enable interrupts */
+	TIMSK1 = _BV(OCIE1A) | _BV(OCIE1B) | _BV(TOIE1);
 	OCR1A = 0;
 	OCR1B = 0;
 
@@ -162,6 +165,7 @@ init(uint8_t sema, uint8_t stack)
 		TAILQ_INIT(&kern.wq[i]);
 
 	TAILQ_INIT(&kern.tq);
+	TAILQ_INIT(&kern.all);
 
 	/* init idle task */
 	kern.idle = calloc(1, sizeof(struct task));
@@ -172,14 +176,15 @@ init(uint8_t sema, uint8_t stack)
 	kern.idle->stack = (uint8_t *)(RAMEND - stack + 1);
 	kern.idle->rq = &kern.rq[kern.idle->prio];
 	TAILQ_INSERT_TAIL(kern.idle->rq, kern.idle, r_link);
-	kern.cur = TAILQ_FIRST(kern.idle->rq);
+	TAILQ_INSERT_TAIL(&kern.all, kern.idle, a_link);
+	kern.cur = kern.idle;
 
 	kern.cycles = 0;
 	kern.semaphore = 0;
 	kern.maxid = 0;
-
 	kern.reboot = 0;
-	wdt_enable(WDTO_500MS);
+
+	wdt_enable(TIMEOUT);
 
 	sei();
 }
@@ -201,8 +206,12 @@ exec(void (*fun)(void *), void *args, uint8_t stack)
 	*sp-- = LO8(fun);		/* PC(lo) */
 	*sp-- = HI8(fun);		/* PC(hi) */
 
-	sp -= 25;
-	memset(sp, 0, 25);		/* r1, r0, SREG, r2-r23 */
+	*sp-- = 0;			/* r1 */
+	*sp-- = 0;			/* r0 */
+	*sp-- = SREG | _BV(SREG_I);	/* SREG */
+
+	sp -= 22;
+	memset(sp, 0, 22);		/* r2-r23 */
 	
 	*sp-- = LO8(args);		/* r24 */
 	*sp-- = HI8(args);		/* r25 */
@@ -210,12 +219,13 @@ exec(void (*fun)(void *), void *args, uint8_t stack)
 	sp -= 6;
 	memset(sp, 0, 6);		/* r26-r31 */
 
-	tp->prio = High;
 	tp->id = ++kern.maxid;
 	tp->release = 0;
 	tp->sp = (uint16_t)sp;		/* SP */
+	tp->prio = High;
 	tp->rq = &kern.rq[tp->prio];
 	TAILQ_INSERT_TAIL(tp->rq, tp, r_link);
+	TAILQ_INSERT_TAIL(&kern.all, tp, a_link);
 
 	sei();
 }
@@ -268,7 +278,7 @@ sleep(uint32_t sec, uint32_t usec)
 
 	cli();
 
-	kern.cur->release += SEC(sec) + USEC(usec);
+	kern.cur->release = NOW(kern.cycles, TCNT1) + SEC(sec) + USEC(usec);
 	TAILQ_REMOVE(kern.cur->rq, kern.cur, r_link);
 
 	/* find right place */
@@ -326,6 +336,25 @@ void
 reboot(void)
 {
 	kern.reboot = 1;
+}
+
+uint8_t
+sysrq(uint8_t req, uint8_t id)
+{
+	struct task *tp;
+
+	switch (req) {
+	case nTask:
+		return kern.maxid + 1;
+	case Prio:
+		TAILQ_FOREACH(tp, &kern.all, a_link) {
+			if (!id--)
+				break;
+		}
+		return tp->prio;
+	}
+
+	return -1;
 }
 
 void
