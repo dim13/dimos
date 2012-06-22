@@ -69,7 +69,7 @@
 #define MSEC(T)	((uint32_t)(T) * kHz)
 #define SEC(T)	((uint32_t)(T) * Hz)
 
-enum Prio { High, Mid, Low, Idle, nPrio };
+enum Prio { High, Low = 3, Idle, nPrio };
 enum SysRQ { nTask, Prio };
 
 /* __BEGIN_DECLS */
