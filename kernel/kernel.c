@@ -142,6 +142,9 @@ init(uint8_t sema, uint8_t stack)
 	MCUSR = 0;
 	wdt_disable();
 
+	/* turn all on */
+	power_all_enable();
+
 	/* set clock prescale to 1 in case CKDIV8 fuse is on */
 	clock_prescale_set(clock_div_1);
 
