@@ -37,6 +37,7 @@
 #define SPAN(from, to)		((int32_t)((to) - (from)))
 #define SLICE			MSEC(1)
 #define TIMEOUT			WDTO_500MS
+#define swtch			TIMER1_COMPB_vect
 
 struct task {
 	uint32_t release;		/* release time */
@@ -65,28 +66,6 @@ struct kern {
 	uint8_t maxid;
 	uint8_t reboot;
 } kern;
-
-NAKED(swtch)
-{
-	struct queue *rq;
-
-	pusha();
-
-	/* pick hightes rq, cannot fail */
-	for (rq = kern.rq; TAILQ_EMPTY(rq); rq++)
-		;
-
-	/* switch context */
-	kern.cur->sp = SP;
-	kern.cur = TAILQ_FIRST(rq);
-	SP = kern.cur->sp;
-
-	/* set task slice timeout */
-	OCR1B = TCNT1 + SLICE;
-
-	popa();
-	ret();
-}
 
 ISR(TIMER1_OVF_vect)
 {
@@ -119,17 +98,37 @@ ISR(TIMER1_COMPA_vect)
 		OCR1A = TCNT1 + SPAN(now, tp->release);
 }
 
-ISR(TIMER1_COMPB_vect)
+ISR(TIMER1_COMPB_vect, ISR_NAKED)
 {
-	/* reschedule current task if it've used its time slice */
-	TAILQ_REMOVE(kern.cur->rq, kern.cur, r_link);
-	/* lower priority */
-	if (kern.cur->prio < Low)
-		kern.cur->prio++;
-	kern.cur->rq = &kern.rq[kern.cur->prio];
-	TAILQ_INSERT_TAIL(kern.cur->rq, kern.cur, r_link);
+	struct queue *rq;
 
-	swtch();
+	pusha();
+
+	if (kern.cur == TAILQ_FIRST(kern.cur->rq)) {
+		/* reschedule current task if it've used its time slice */
+		TAILQ_REMOVE(kern.cur->rq, kern.cur, r_link);
+		/* lower priority */
+		if (kern.cur->prio < Low)
+			kern.cur->prio++;
+		kern.cur->rq = &kern.rq[kern.cur->prio];
+		TAILQ_INSERT_TAIL(kern.cur->rq, kern.cur, r_link);
+	}
+
+	/* pick hightes rq, cannot fail */
+	for (rq = kern.rq; TAILQ_EMPTY(rq); rq++)
+		;
+
+	/* switch context */
+	kern.cur->sp = SP;
+	kern.cur = TAILQ_FIRST(rq);
+	SP = kern.cur->sp;
+
+	/* set task slice timeout */
+	OCR1B = TCNT1 + SLICE;
+
+	popa();
+
+	reti();
 }
 
 void
