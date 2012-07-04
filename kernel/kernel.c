@@ -188,7 +188,7 @@ init(uint8_t sema, uint8_t stack)
 
 	wdt_enable(TIMEOUT);
 
-	sei();
+	swtch();
 }
 
 void
@@ -245,9 +245,8 @@ wait(uint8_t chan)
 	} else {
 		/* occupy semaphore and continue */
 		kern.semaphore |= _BV(chan);
+		sei();
 	}
-
-	sei();
 }
 
 void
@@ -294,8 +293,6 @@ sleep(uint32_t sec, uint32_t usec)
 		TAILQ_INSERT_TAIL(&kern.tq, kern.cur, t_link);
 
 	swtch();
-
-	sei();
 }
 
 void
@@ -305,9 +302,8 @@ yield(void)
 
 	TAILQ_REMOVE(kern.cur->rq, kern.cur, r_link);
 	TAILQ_INSERT_TAIL(kern.cur->rq, kern.cur, r_link);
-	swtch();
 
-	sei();
+	swtch();
 }
 
 void
@@ -317,9 +313,8 @@ suspend(void)
 
 	/* TODO: free memory */
 	TAILQ_REMOVE(kern.cur->rq, kern.cur, r_link);
-	swtch();
 
-	sei();
+	swtch();
 }
 
 uint32_t
