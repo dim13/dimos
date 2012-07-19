@@ -118,13 +118,13 @@ ISR(TIMER1_COMPB_vect, ISR_NAKED)
 	for (rq = kern.rq; TAILQ_EMPTY(rq); rq++)
 		;
 
-	if (!rq)
-		kern.reboot = 1;		/* XXX */
-
-	/* switch context */
-	kern.cur->sp = SP;
-	kern.cur = TAILQ_FIRST(rq);
-	SP = kern.cur->sp;
+	if (rq) {
+		/* switch context */
+		kern.cur->sp = SP;
+		kern.cur = TAILQ_FIRST(rq);
+		SP = kern.cur->sp;
+	} else
+		kern.reboot = 1;
 
 	/* set task slice timeout */
 	OCR1B = TCNT1 + SLICE;
