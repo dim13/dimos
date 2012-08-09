@@ -5,7 +5,9 @@ NOMAN=
 
 MCU_TARGET=	atmega328p
 F_CPU=		20000000
-ORG=		0x7e00		# Table 27-13, 4 Pages 265 words * 2
+ORG=		0x7e00		# Table 27-13, 4 Pages 256 words * 2
+				# BOOTSZ1: 1
+				# BOOTSZ0: 1
 
 # You should not have to change anything below here.
 
