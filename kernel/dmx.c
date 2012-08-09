@@ -19,6 +19,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <avr/io.h>
+#include <avr/cpufunc.h>
 #include "kernel.h"
 #include "tasks.h"
 
@@ -51,7 +52,8 @@ main()
 	exec(ppm, &ppmarg, DEFSTACK);
 #endif
 
-	idle();
+	for (;;)
+		_NOP();
 
 	return 0;
 }
