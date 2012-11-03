@@ -19,8 +19,6 @@
 #define BAUD 9600
 #endif
 
-#define USE_RXCIE 0
-
 #include <stdint.h>
 #include <stdio.h>
 #include <avr/io.h>
@@ -29,56 +27,12 @@
 #include "kernel.h"
 #include "tasks.h"
 
-#if USE_RXCIE
-ISR(USART_RX_vect)
-{
-	uint8_t	c, *p;
-
-	switch ((c = UDR0)) {
-	case 'Z':	/* zero */
-		for (p = (uint8_t *)RAMSTART; p <= (uint8_t *)RAMEND; p++)
-			*p = 0;
-		/* FALLTHROUGH */
-	case 'R':	/* reboot */
-	case '-':	/* reboot */
-		reboot();
-		break;
-	case 'D':	/* dump */
-		for (p = (uint8_t *)0; p <= (uint8_t *)RAMEND; p++)
-			uart_putchar(*p, NULL);
-		break;
-	case 'T':
-		UCSR0B |= _BV(UDRIE0);
-		break;
-	case 't':
-		UCSR0B &= ~_BV(UDRIE0);
-		break;
-	case '\r':
-	case '\n':
-		break;
-	default:
-		uart_putchar('?', NULL);
-		break;
-	}
-}
-
-ISR(USART_UDRE_vect)
-{
-	uint8_t r = running();
-
-	UDR0 = r ? '0' + r : '.';
-}
-#endif
-
 void
 uart_init(void)
 {
 	FILE *uart_stream;
 
 	UCSR0B = _BV(RXEN0) | _BV(TXEN0);
-#if USE_RXCIE
-	UCSR0B |= _BV(RXCIE0);
-#endif
 	UBRR0H = UBRRH_VALUE;
 	UBRR0L = UBRRL_VALUE;
 #if USE_U2X
