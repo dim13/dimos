@@ -48,6 +48,8 @@ rgb(void *arg)
 	}
 }
 
+#define	SCALE(x)	(((x) << 6) + ((x) << 4))	/* x80, ~20ms */
+
 void
 pwm(void *arg)
 {
@@ -65,13 +67,13 @@ pwm(void *arg)
 		/* on */
 		if (t) {
 			PORTB |= _BV(a->pin);
-			sleep(0, t << 6);
+			sleep(0, SCALE(t));
 		}
 
 		/* off */
 		if ((t = UINT8_MAX - t)) {
 			PORTB &= ~_BV(a->pin);
-			sleep(0, t << 6);
+			sleep(0, SCALE(t));
 		}
 	}
 }
