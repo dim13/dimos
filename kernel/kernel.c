@@ -180,7 +180,7 @@ exec(void (*fun)(void *), void *args, uint8_t stack)
 
 	*sp-- = 0;			/* r1 */
 	*sp-- = 0;			/* r0 */
-	*sp-- = SREG | _BV(SREG_I);	/* SREG */
+	*sp-- = SREG | _BV(SREG_I);	/* SREG with interrupts enabled */
 
 	sp -= 22;
 	memset(sp, 0, 22);		/* r2-r23 */
