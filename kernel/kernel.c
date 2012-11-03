@@ -73,9 +73,7 @@ ISR(TIMER1_OVF_vect)
 ISR(TIMER1_COMPA_vect)
 {
 	struct task *tp;
-	uint32_t now;
-
-	now = NOW(kern.cycles, TCNT1);
+	uint32_t now = NOW(kern.cycles, TCNT1);
 
 	/* release waiting tasks */
 	while ((tp = TAILQ_FIRST(&kern.tq)) && SPAN(now, tp->release) <= 0) {

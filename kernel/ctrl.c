@@ -24,11 +24,10 @@
 void
 ctrl(void *arg)
 {
-	int c;
 	uint8_t	*p;
 
 	for (;;) {
-		switch ((c = getchar())) {
+		switch (getchar()) {
 		case 'R':
 		case 'r':
 		case '-':
@@ -36,13 +35,10 @@ ctrl(void *arg)
 			break;
 		case 'D':
 		case 'd':
+			/* dump memory */
 			for (p = (uint8_t *)0; p <= (uint8_t *)RAMEND; p++)
 				putchar(*p);
 			break;	
-		case 'N':
-		case 'n':
-			printf("%8lx\n", now());
-			break;
 		case -2:
 			puts("EOF");
 			break;
