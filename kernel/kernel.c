@@ -25,7 +25,6 @@
 #include <avr/io.h>
 #include <avr/interrupt.h>
 #include <avr/power.h>
-#include <avr/sleep.h>
 #include <avr/wdt.h>
 #include "kernel.h"
 #include "stack.h"
@@ -297,11 +296,4 @@ void
 reboot(void)
 {
 	kern.reboot = 1;
-}
-
-void
-idle(void)
-{
-	for (;;)
-		sleep_mode();
 }
