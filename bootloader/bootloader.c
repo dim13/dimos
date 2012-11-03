@@ -15,7 +15,7 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#include <assert.h>
+#include <err.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -35,18 +35,11 @@ transfer(int fd, struct page *p, int pages, int pagesize)
 	while (get(fd) != '+')
 		;
 
-	fprintf(stderr, "\nwriting: ");
+	fprintf(stderr, "\nwriting pages:");
 
 	for (n = 0; n < pages; n++) {
-		if (n >= GUARDPAGE) {
-			fprintf(stderr, "x");
+		if (!p[n].dirty)
 			continue;
-		}
-
-		if (!p[n].dirty) {
-			fprintf(stderr, ".");
-			continue;
-		}
 			
 		put('@', fd);
 		put(n, fd);
@@ -58,7 +51,9 @@ transfer(int fd, struct page *p, int pages, int pagesize)
 		put(sum, fd);
 		switch (get(fd)) {
 		case '.':
-			fprintf(stderr, "o");
+			if (!(n % 10))
+				fprintf(stderr, " %d", n);
+			fprintf(stderr, ".");
 			maxerr = 0;
 			break;	/* success, next page */
 		case '!':
@@ -106,8 +101,14 @@ main(int argc, char **argv)
 		return -1;
 
 	p = rdhex(argv[0], PAGENUM, PAGESIZE);
-	assert(p);
-	assert(p[GUARDPAGE].dirty == 0);	/* protect firmware */
+
+	if (!p)
+		errx(1, "error reading file %s", argv[0]);
+
+	/* protect firmware */
+	for (c = GUARDPAGE; c < PAGENUM; c++)
+		if (p[c].dirty)
+			errx(1, "firmware protection: programm to big");
 
 	fd = open_tty(dev);
 	if (fd == -1) {
