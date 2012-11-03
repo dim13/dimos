@@ -36,7 +36,7 @@
 #define SPAN(from, to)		((int32_t)((to) - (from)))
 #define SLICE			MSEC(1)
 #define TIMEOUT			WDTO_500MS
-#define swtch			TIMER1_COMPB_vect
+#define SWITCH			TIMER1_COMPB_vect
 
 struct task {
 	uint32_t release;		/* release time */
@@ -158,7 +158,7 @@ init(uint8_t sema)
 
 	wdt_enable(TIMEOUT);
 
-	swtch();
+	SWITCH();
 }
 
 void
@@ -208,7 +208,7 @@ wait(uint8_t chan)
 		/* semaphore busy, go into wait queue */
 		TAILQ_REMOVE(&kern.rq, kern.cur, r_link);
 		TAILQ_INSERT_TAIL(&kern.wq[chan], kern.cur, w_link);
-		swtch();
+		SWITCH();
 	} else {
 		/* occupy semaphore and continue */
 		kern.semaphore |= _BV(chan);
@@ -255,7 +255,7 @@ sleep(uint32_t sec, uint32_t usec)
 	else
 		TAILQ_INSERT_TAIL(&kern.tq, kern.cur, t_link);
 
-	swtch();
+	SWITCH();
 }
 
 void
@@ -266,7 +266,7 @@ yield(void)
 	TAILQ_REMOVE(&kern.rq, kern.cur, r_link);
 	TAILQ_INSERT_TAIL(&kern.rq, kern.cur, r_link);
 
-	swtch();
+	SWITCH();
 }
 
 void
@@ -277,7 +277,7 @@ suspend(void)
 	/* TODO: free memory */
 	TAILQ_REMOVE(&kern.rq, kern.cur, r_link);
 
-	swtch();
+	SWITCH();
 }
 
 uint32_t
