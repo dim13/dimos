@@ -273,12 +273,6 @@ now(void)
 	return NOW(kern.cycles, TCNT1);
 }
 
-uint8_t
-running(void)
-{
-	return kern.cur->id;
-}
-
 void
 reboot(void)
 {

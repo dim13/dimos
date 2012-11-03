@@ -86,8 +86,6 @@ void terminate(void);
 void sleep(uint32_t sec, uint32_t usec);
 
 uint32_t now(void);
-uint8_t running(void);
-uint8_t sysrq(uint8_t req, uint8_t id);
 
 void reboot(void);
 void idle(void);
