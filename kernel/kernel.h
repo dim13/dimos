@@ -82,9 +82,8 @@ void exec(void (*fun)(void *), void *args, uint8_t stack);
 void wait(uint8_t chan);
 void signal(uint8_t chan);
 
-void suspend(void);
+void terminate(void);
 void sleep(uint32_t sec, uint32_t usec);
-void yield(void);
 
 uint32_t now(void);
 uint8_t running(void);
