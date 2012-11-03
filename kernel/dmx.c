@@ -52,8 +52,7 @@ main()
 	exec(ppm, &ppmarg, DEFSTACK);
 #endif
 
-	for (;;)
-		_NOP();
+	IDLE();
 
 	return 0;
 }

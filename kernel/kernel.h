@@ -72,6 +72,8 @@
 enum Prio { High, Low = 2, Idle, nPrio };
 enum SysRQ { nTask, Prio };
 
+#define IDLE()	do { for (;;) asm volatile ("nop"); } while (0)
+
 /* __BEGIN_DECLS */
 
 void init(uint8_t sema);
