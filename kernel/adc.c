@@ -37,9 +37,9 @@ adc(void *arg)
 			ADCSRA |= _BV(ADSC);
 			loop_until_bit_is_clear(ADCSRA, ADSC);
 
-			wait(Adc);
+			lock(Adc);
 			a->value[i] = ADCH;	/* ADLAR: 8-bit */
-			signal(Adc);
+			unlock(Adc);
 		}
 
 #if 0
