@@ -44,21 +44,17 @@ struct task {
 	uint16_t sp;			/* stack pointer */
 	uint8_t *stack;			/* stack area */
 	uint8_t id;			/* task id */
-	uint8_t prio;
-	struct queue *rq;
 	TAILQ_ENTRY(task) r_link;
 	TAILQ_ENTRY(task) t_link;
 	TAILQ_ENTRY(task) w_link;
-	TAILQ_ENTRY(task) a_link;
 };
 
 TAILQ_HEAD(queue, task);
 
 struct kern {
-	struct queue *rq;		/* run queue */
-	struct queue *wq;		/* wait queues */
+	struct queue rq;		/* run queue */
 	struct queue tq;		/* time queue */
-	struct queue all;		/* all tasks */
+	struct queue *wq;		/* wait queues */
 	struct task *idle;
 	struct task *cur;		/* current task */
 	uint16_t cycles;		/* clock high byte */
@@ -80,17 +76,12 @@ ISR(TIMER1_COMPA_vect)
 	struct task *tp;
 	uint32_t now;
 
-	/* grab time as early as possible */
 	now = NOW(kern.cycles, TCNT1);
 
 	/* release waiting tasks */
 	while ((tp = TAILQ_FIRST(&kern.tq)) && SPAN(now, tp->release) <= 0) {
 		TAILQ_REMOVE(&kern.tq, tp, t_link);
-		/* raise priority */
-		if (tp->prio > High)
-			tp->prio--;
-		tp->rq = &kern.rq[tp->prio];
-		TAILQ_INSERT_TAIL(tp->rq, tp, r_link);
+		TAILQ_INSERT_TAIL(&kern.rq, tp, r_link);
 	}
 
 	/* set next wakeup timer */
@@ -100,31 +91,18 @@ ISR(TIMER1_COMPA_vect)
 
 ISR(TIMER1_COMPB_vect, ISR_NAKED)
 {
-	struct queue *rq;
-
 	pusha();
 
-	if (kern.cur == TAILQ_FIRST(kern.cur->rq)) {
-		/* reschedule current task if it've used its time slice */
-		TAILQ_REMOVE(kern.cur->rq, kern.cur, r_link);
-		/* lower priority */
-		if (kern.cur->prio < Low)
-			kern.cur->prio++;
-		kern.cur->rq = &kern.rq[kern.cur->prio];
-		TAILQ_INSERT_TAIL(kern.cur->rq, kern.cur, r_link);
+	/* reschedule current task if it've used its time slice */
+	if (kern.cur == TAILQ_FIRST(&kern.rq)) {
+		TAILQ_REMOVE(&kern.rq, kern.cur, r_link);
+		TAILQ_INSERT_TAIL(&kern.rq, kern.cur, r_link);
 	}
 
-	/* pick hightes rq, cannot fail */
-	for (rq = kern.rq; TAILQ_EMPTY(rq); rq++)
-		;
-
-	if (rq) {
-		/* switch context */
-		kern.cur->sp = SP;
-		kern.cur = TAILQ_FIRST(rq);
-		SP = kern.cur->sp;
-	} else
-		kern.reboot = 1;
+	/* switch context */
+	kern.cur->sp = SP;
+	kern.cur = TAILQ_EMPTY(&kern.rq) ? kern.idle : TAILQ_FIRST(&kern.rq);
+	SP = kern.cur->sp;
 
 	/* set task slice timeout */
 	OCR1B = TCNT1 + SLICE;
@@ -135,7 +113,7 @@ ISR(TIMER1_COMPB_vect, ISR_NAKED)
 }
 
 void
-init(uint8_t sema, uint8_t stack)
+init(uint8_t sema)
 {
 	uint8_t i;
 
@@ -160,28 +138,18 @@ init(uint8_t sema, uint8_t stack)
 	OCR1B = 0;
 
 	/* init queues */
-
-	kern.rq = calloc(nPrio, sizeof(struct queue));
-	for (i = 0; i < nPrio; i++)
-		TAILQ_INIT(&kern.rq[i]);
+	TAILQ_INIT(&kern.rq);
+	TAILQ_INIT(&kern.tq);
 
 	kern.wq = calloc(sema, sizeof(struct queue));
 	for (i = 0; i < sema; i++)
 		TAILQ_INIT(&kern.wq[i]);
 
-	TAILQ_INIT(&kern.tq);
-	TAILQ_INIT(&kern.all);
-
 	/* init idle task */
 	kern.idle = calloc(1, sizeof(struct task));
-	kern.idle->prio = Idle;
 	kern.idle->id = 0;
 	kern.idle->release = 0;
 	kern.idle->sp = SP;			/* not really needed */
-	kern.idle->stack = (uint8_t *)(RAMEND - stack + 1);
-	kern.idle->rq = &kern.rq[kern.idle->prio];
-	TAILQ_INSERT_TAIL(kern.idle->rq, kern.idle, r_link);
-	TAILQ_INSERT_TAIL(&kern.all, kern.idle, a_link);
 	kern.cur = kern.idle;
 
 	kern.cycles = 0;
@@ -227,10 +195,7 @@ exec(void (*fun)(void *), void *args, uint8_t stack)
 	tp->id = ++kern.maxid;
 	tp->release = 0;
 	tp->sp = (uint16_t)sp;		/* SP */
-	tp->prio = High;
-	tp->rq = &kern.rq[tp->prio];
-	TAILQ_INSERT_TAIL(tp->rq, tp, r_link);
-	TAILQ_INSERT_TAIL(&kern.all, tp, a_link);
+	TAILQ_INSERT_TAIL(&kern.rq, tp, r_link);
 
 	sei();
 }
@@ -242,7 +207,7 @@ wait(uint8_t chan)
 
 	if (kern.semaphore & _BV(chan)) {
 		/* semaphore busy, go into wait queue */
-		TAILQ_REMOVE(kern.cur->rq, kern.cur, r_link);
+		TAILQ_REMOVE(&kern.rq, kern.cur, r_link);
 		TAILQ_INSERT_TAIL(&kern.wq[chan], kern.cur, w_link);
 		swtch();
 	} else {
@@ -262,11 +227,7 @@ signal(uint8_t chan)
 	if ((tp = TAILQ_FIRST(&kern.wq[chan]))) {
 		/* release first waiting task from wait queue */
 		TAILQ_REMOVE(&kern.wq[chan], tp, w_link);
-		/* raise priority */
-		if (tp->prio > High)
-			tp->prio--;
-		tp->rq = &kern.rq[tp->prio];
-		TAILQ_INSERT_TAIL(tp->rq, tp, r_link);
+		TAILQ_INSERT_TAIL(&kern.rq, tp, r_link);
 	} else {
 		/* clear semaphore and continue */
 		kern.semaphore &= ~_BV(chan);
@@ -283,7 +244,7 @@ sleep(uint32_t sec, uint32_t usec)
 	cli();
 
 	kern.cur->release = NOW(kern.cycles, TCNT1) + SEC(sec) + USEC(usec);
-	TAILQ_REMOVE(kern.cur->rq, kern.cur, r_link);
+	TAILQ_REMOVE(&kern.rq, kern.cur, r_link);
 
 	/* find right place */
 	TAILQ_FOREACH(tp, &kern.tq, t_link)
@@ -303,8 +264,8 @@ yield(void)
 {
 	cli();
 
-	TAILQ_REMOVE(kern.cur->rq, kern.cur, r_link);
-	TAILQ_INSERT_TAIL(kern.cur->rq, kern.cur, r_link);
+	TAILQ_REMOVE(&kern.rq, kern.cur, r_link);
+	TAILQ_INSERT_TAIL(&kern.rq, kern.cur, r_link);
 
 	swtch();
 }
@@ -315,7 +276,7 @@ suspend(void)
 	cli();
 
 	/* TODO: free memory */
-	TAILQ_REMOVE(kern.cur->rq, kern.cur, r_link);
+	TAILQ_REMOVE(&kern.rq, kern.cur, r_link);
 
 	swtch();
 }
@@ -336,25 +297,6 @@ void
 reboot(void)
 {
 	kern.reboot = 1;
-}
-
-uint8_t
-sysrq(uint8_t req, uint8_t id)
-{
-	struct task *tp;
-
-	switch (req) {
-	case nTask:
-		return kern.maxid + 1;
-	case Prio:
-		TAILQ_FOREACH(tp, &kern.all, a_link) {
-			if (!id--)
-				break;
-		}
-		return tp->prio;
-	}
-
-	return -1;
 }
 
 void
