@@ -26,7 +26,6 @@ ctrl(void *arg)
 {
 	int c;
 	uint8_t	*p;
-	uint8_t n, i, k;
 
 	for (;;) {
 		switch ((c = getchar())) {
@@ -43,15 +42,6 @@ ctrl(void *arg)
 		case 'N':
 		case 'n':
 			printf("%8lx\n", now());
-			break;
-		case 'S':
-		case 's':
-			n = sysrq(nTask, 0);
-			for (i = 0; i < n; i++) {
-				k = sysrq(Prio, i);
-				printf("%d (%d) ", i, k);
-			}
-			printf("\n");
 			break;
 		case -2:
 			puts("EOF");
