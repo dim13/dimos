@@ -79,8 +79,8 @@ enum SysRQ { nTask, Prio };
 void init(uint8_t sema);
 void exec(void (*fun)(void *), void *args, uint8_t stack);
 
-void wait(uint8_t chan);
-void signal(uint8_t chan);
+void lock(uint8_t chan);
+void unlock(uint8_t chan);
 
 void terminate(void);
 void sleep(uint32_t sec, uint32_t usec);
