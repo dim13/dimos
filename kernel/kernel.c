@@ -259,18 +259,7 @@ sleep(uint32_t sec, uint32_t usec)
 }
 
 void
-yield(void)
-{
-	cli();
-
-	TAILQ_REMOVE(&kern.rq, kern.cur, r_link);
-	TAILQ_INSERT_TAIL(&kern.rq, kern.cur, r_link);
-
-	SWITCH();
-}
-
-void
-suspend(void)
+terminate(void)
 {
 	cli();
 
