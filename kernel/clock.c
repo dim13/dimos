@@ -40,9 +40,9 @@ clock(void *arg)
 		if (h == 24) { h = 0; ++d; }
 
 #if 0
-		wait(Display);
+		lock(Display);
 		fprintf(stderr, "\r%4d:%.2d:%.2d:%.2d.%1d ", d, h, m, s, ds);
-		signal(Display);
+		unlock(Display);
 #endif
 
 		fprintf(stderr, "\r%4d:%.2d:%.2d:%.2d.%1d\n", d, h, m, s, ds);

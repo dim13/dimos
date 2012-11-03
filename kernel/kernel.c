@@ -200,7 +200,7 @@ exec(void (*fun)(void *), void *args, uint8_t stack)
 }
 
 void
-wait(uint8_t chan)
+lock(uint8_t chan)
 {
 	cli();
 
@@ -217,7 +217,7 @@ wait(uint8_t chan)
 }
 
 void
-signal(uint8_t chan)
+unlock(uint8_t chan)
 {
 	struct task *tp;
 

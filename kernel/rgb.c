@@ -31,18 +31,18 @@ rgb(void *arg)
 	uint8_t r, g, b, v = 0;
 
 	for (;;) {
-		wait(Adc);
+		lock(Adc);
 		v = *a->v;		/* 8bit */
-		signal(Adc);
+		unlock(Adc);
 
 		i = (i + 1) % 360;
 		hsv(&r, &g, &b, i, 255, v);
 
-		wait(RGB);
+		lock(RGB);
 		a->r = r;
 		a->g = g;
 		a->b = b;
-		signal(RGB);
+		unlock(RGB);
 
 		sleep(0, 234375);
 	}
@@ -60,9 +60,9 @@ pwm(void *arg)
 	PORTB &= ~_BV(a->pin);
 
 	for (;;) {
-		wait(RGB);
+		lock(RGB);
 		t = *a->value;
-		signal(RGB);
+		unlock(RGB);
 
 		/* on */
 		if (t) {
