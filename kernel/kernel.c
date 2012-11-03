@@ -92,7 +92,7 @@ ISR(TIMER1_COMPB_vect, ISR_NAKED)
 {
 	pusha();
 
-	/* reschedule current task if it've used its time slice */
+	/* reschedule current task if it had used all its time slice */
 	if (kern.cur == TAILQ_FIRST(&kern.rq)) {
 		TAILQ_REMOVE(&kern.rq, kern.cur, r_link);
 		TAILQ_INSERT_TAIL(&kern.rq, kern.cur, r_link);
@@ -285,4 +285,16 @@ void
 reboot(void)
 {
 	kern.reboot = 1;
+}
+
+void
+fetchrq(uint8_t *data, uint8_t len)
+{
+	struct task *tp;
+
+	memset(data, 0, len);
+	TAILQ_FOREACH(tp, &kern.rq, r_link) {
+		if (tp->id < len)
+			data[tp->id] = 1;
+	}
 }

@@ -92,6 +92,8 @@ uint8_t sysrq(uint8_t req, uint8_t id);
 void reboot(void);
 void idle(void);
 
+void fetchrq(uint8_t *, uint8_t);
+
 /* __END_DECLS */
 
 #endif

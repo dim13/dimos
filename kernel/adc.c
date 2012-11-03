@@ -42,9 +42,11 @@ adc(void *arg)
 			signal(Adc);
 		}
 
+#if 0
 		wait(Display);
 		fprintf(stderr, "\n%8lx%8x", now(), a->value[0]);
 		signal(Display);
+#endif
 
 		sleep(0, 100000);
 	}
