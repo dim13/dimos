@@ -35,9 +35,9 @@ struct pwmarg pwmargs[] = {
 int
 main()
 {
-	init(nSema);
 	uart_init();
 	lcd_init();
+	init(nSema);
 
 	exec(heartbeat, NULL, DEFSTACK);
 	exec(rgb, &rgbargs, DEFSTACK);
