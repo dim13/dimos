@@ -24,10 +24,11 @@
 #include <avr/wdt.h>
 #include <util/setbaud.h>	/* depends on BAUD & F_CPU env vars */
 
-#define TIMEOUT	(F_CPU >> 4)	/* ~ 1 sec */
-#define PUTCH(c) do { \
-	loop_until_bit_is_set(UCSR0A, UDRE0); UDR0 = (c); \
+#define TIMEOUT (F_CPU >> 4)	/* ~1 sec */
+#define PUTCH(c) do {						\
+	loop_until_bit_is_set(UCSR0A, UDRE0); UDR0 = (c);	\
 } while (0)
+#define GOTO(x)	((void(*)(void))(x))()
 
 union {
 	uint16_t word;
@@ -52,11 +53,11 @@ main(void)
 	UCSR0B = _BV(RXEN0) | _BV(TXEN0);
 	UBRR0H = UBRRH_VALUE;
 	UBRR0L = UBRRL_VALUE;
-	#if USE_2X
+#if USE_2X
 	UCSR0A |= _BV(U2X0);
-	#else
+#else
 	UCSR0A &= ~_BV(U2X0);
-	#endif
+#endif
 
 	PUTCH('+');		/* say hallo */
 	for (;;) {
@@ -108,7 +109,7 @@ main(void)
 reboot:
 	boot_rww_enable();
 
-	((void(*)(void))0)();
+	GOTO(0);
 	/* NOTREACHED */
 
 	return 0;
