@@ -1,5 +1,4 @@
-/*	$Id$	*/
-/*	$OpenBSD: queue.h,v 1.34 2011/07/09 00:19:45 pirofti Exp $	*/
+/*	$OpenBSD: queue.h,v 1.36 2012/04/11 13:29:14 naddy Exp $	*/
 /*	$NetBSD: queue.h,v 1.11 1996/05/16 05:17:14 mycroft Exp $	*/
 
 /*
@@ -123,11 +122,6 @@ struct {								\
 	    (var) && ((tvar) = SLIST_NEXT(var, field), 1);		\
 	    (var) = (tvar))
 
-#define	SLIST_FOREACH_PREVPTR(var, varp, head, field)			\
-	for ((varp) = &SLIST_FIRST((head));				\
-	    ((var) = *(varp)) != SLIST_END(head);			\
-	    (varp) = &SLIST_NEXT((var), field))
-
 /*
  * Singly-linked List functions.
  */
@@ -145,7 +139,7 @@ struct {								\
 	(head)->slh_first = (elm);					\
 } while (0)
 
-#define	SLIST_REMOVE_NEXT(head, elm, field) do {			\
+#define	SLIST_REMOVE_AFTER(elm, field) do {				\
 	(elm)->field.sle_next = (elm)->field.sle_next->field.sle_next;	\
 } while (0)
 
@@ -316,7 +310,7 @@ struct {								\
 		(head)->sqh_last = &(head)->sqh_first;			\
 } while (0)
 
-#define SIMPLEQ_REMOVE_NEXT(head, elm, field) do {			\
+#define SIMPLEQ_REMOVE_AFTER(head, elm, field) do {			\
 	if (((elm)->field.sqe_next = (elm)->field.sqe_next->field.sqe_next) \
 	    == NULL)							\
 		(head)->sqh_last = &(elm)->field.sqe_next;		\
