@@ -82,7 +82,7 @@ ISR(TIMER1_COMPA_vect)
 	}
 
 	/* set next wakeup timer */
-	if ((tp = TAILQ_FIRST(&kern.tq)))
+	if (tp)
 		OCR1A = TCNT1 + SPAN(now, tp->release);
 }
 
