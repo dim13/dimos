@@ -88,20 +88,22 @@ ISR(TIMER1_COMPA_vect)
 
 ISR(TIMER1_COMPB_vect, ISR_NAKED)
 {
+	struct task *tp;
+
 	pusha();
 
-	/* reschedule current task if it had used all its time slice */
-	if (kern.cur == TAILQ_FIRST(&kern.rq)) {
-		TAILQ_REMOVE(&kern.rq, kern.cur, r_link);
-		TAILQ_INSERT_TAIL(&kern.rq, kern.cur, r_link);
+	/* pick first RTR task and move him to tail of RQ */
+	if ((tp = TAILQ_FIRST(&kern.rq))) {
+		TAILQ_REMOVE(&kern.rq, tp, r_link);
+		TAILQ_INSERT_TAIL(&kern.rq, tp, r_link);
 	}
 
 	/* switch context */
 	kern.cur->sp = SP;
-	kern.cur = TAILQ_EMPTY(&kern.rq) ? kern.idle : TAILQ_FIRST(&kern.rq);
+	kern.cur = tp ? tp : kern.idle;
 	SP = kern.cur->sp;
 
-	/* set task slice timeout */
+	/* set next task switch timeout */
 	OCR1B = TCNT1 + SLICE;
 
 	popa();
