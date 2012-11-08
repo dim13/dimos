@@ -48,7 +48,6 @@ main()
 	exec(clock, NULL, DEFSTACK);
 	exec(ctrl, NULL, DEFSTACK);
 #if 0
-	exec(cmd, &rgbargs, DEFSTACK);
 	exec(ppm, &ppmarg, DEFSTACK);
 #endif
 

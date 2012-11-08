@@ -287,8 +287,7 @@ fetchrq(uint8_t *data, uint8_t len)
 	struct task *tp;
 
 	memset(data, 0, len);
-	TAILQ_FOREACH(tp, &kern.rq, r_link) {
+	TAILQ_FOREACH(tp, &kern.rq, r_link)
 		if (tp->id < len)
 			data[tp->id] = 1;
-	}
 }
