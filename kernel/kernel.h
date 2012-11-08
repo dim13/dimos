@@ -32,15 +32,15 @@
 #endif
 
 #if (PRESCALE == 1)
-#define TIMER_FLAGS (_BV(CS10))
+#define TIMER1_FLAGS (_BV(CS10))
 #elif (PRESCALE == 8)
-#define TIMER_FLAGS (_BV(CS11))
+#define TIMER1_FLAGS (_BV(CS11))
 #elif (PRESCALE == 64)
-#define TIMER_FLAGS (_BV(CS11) | _BV(CS10))
+#define TIMER1_FLAGS (_BV(CS11) | _BV(CS10))
 #elif (PRESCALE == 256)
-#define TIMER_FLAGS (_BV(CS12))
+#define TIMER1_FLAGS (_BV(CS12))
 #elif (PRESCALE == 1024)
-#define TIMER_FLAGS (_BV(CS12) | _BV(CS10))
+#define TIMER1_FLAGS (_BV(CS12) | _BV(CS10))
 #else
 #error invalid PRESCALE value
 #endif

@@ -135,7 +135,7 @@ init(uint8_t sema)
 	/* Set up timer 1 */
 	TCNT1 = 0;				/* reset timer */
 	TCCR1A = 0;				/* normal operation */
-	TCCR1B = TIMER_FLAGS;			/* prescale */
+	TCCR1B = TIMER1_FLAGS;			/* prescale */
 	TIMSK1 = _BV(OCIE1A) | _BV(OCIE1B) | _BV(TOIE1);
 	OCR1A = 0;
 	OCR1B = 0;
