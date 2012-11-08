@@ -72,13 +72,17 @@ ISR(TIMER1_OVF_vect)
 
 ISR(TIMER1_COMPA_vect)
 {
-	struct task *tp;
+	struct task *tp, *first;
 	uint32_t now = NOW(kern.cycles, TCNT1);
 
 	/* release waiting tasks */
+	first = TAILQ_FIRST(&kern.rq);
 	while ((tp = TAILQ_FIRST(&kern.tq)) && SPAN(now, tp->release) <= 0) {
 		TAILQ_REMOVE(&kern.tq, tp, t_link);
-		TAILQ_INSERT_TAIL(&kern.rq, tp, r_link);
+		if (first)
+			TAILQ_INSERT_BEFORE(first, tp, r_link);
+		else
+			TAILQ_INSERT_TAIL(&kern.rq, tp, r_link);
 	}
 
 	/* set next wakeup timer */
@@ -226,7 +230,7 @@ unlock(uint8_t chan)
 	if ((tp = TAILQ_FIRST(&kern.wq[chan]))) {
 		/* release first waiting task from wait queue */
 		TAILQ_REMOVE(&kern.wq[chan], tp, w_link);
-		TAILQ_INSERT_TAIL(&kern.rq, tp, r_link);
+		TAILQ_INSERT_HEAD(&kern.rq, tp, r_link);
 	} else {
 		/* clear semaphore and continue */
 		kern.semaphore &= ~_BV(chan);
