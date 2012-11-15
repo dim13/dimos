@@ -48,7 +48,11 @@ rgb(void *arg)
 	}
 }
 
-#define	SCALE(x)	(((x) << 6) + ((x) << 4))	/* x80, ~20ms */
+#if 0
+#define	SCALE(x)	(((x) << 6) + ((x) << 4))	/* 50Hz */
+#else
+#define	SCALE(x)	((x) << 6)			/* 60Hz */
+#endif
 
 void
 pwm(void *arg)
