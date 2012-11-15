@@ -11,7 +11,7 @@ OBJCOPY=	avr-objcopy
 OBJDUMP=	avr-objdump
 SIZE=		avr-size
 
-CFLAGS=		-mmcu=${MCU} -Wall -Os -DF_CPU=${F_CPU}
+CFLAGS=		-mmcu=${MCU} -Wall -O2 -DF_CPU=${F_CPU}
 LDFLAGS=	-mmcu=${MCU} -Wl,-Map,${PROG}.map
 
 .SUFFIXES:	.lst .hex .bin .srec .ehex .ebin .esrec
