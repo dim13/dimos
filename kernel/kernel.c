@@ -100,11 +100,12 @@ ISR(TIMER1_COMPB_vect, ISR_NAKED)
 	if ((tp = TAILQ_FIRST(&kern.rq))) {
 		TAILQ_REMOVE(&kern.rq, tp, r_link);
 		TAILQ_INSERT_TAIL(&kern.rq, tp, r_link);
-	}
+	} else
+		tp = kern.idle;
 
 	/* switch context */
 	kern.cur->sp = SP;
-	kern.cur = tp ? tp : kern.idle;
+	kern.cur = tp;
 	SP = kern.cur->sp;
 
 	/* set next task switch timeout */
