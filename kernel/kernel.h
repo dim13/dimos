@@ -87,8 +87,6 @@ uint32_t now(void);
 void reboot(void);
 void idle(void);
 
-void fetchrq(uint8_t *, uint8_t);
-
 /* __END_DECLS */
 
 #endif
