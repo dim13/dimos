@@ -28,8 +28,6 @@ clock(void *arg)
 {
 	uint8_t d, h, m, s, ds;
 
-	uint8_t id[16], n, *p;
-
 	d = h = m = s = ds = 0;
 
 	for (;;) {
@@ -39,18 +37,9 @@ clock(void *arg)
 		if (m == 60) { m = 0; ++h; }
 		if (h == 24) { h = 0; ++d; }
 
-#if 0
 		lock(Display);
 		fprintf(stderr, "\r%4d:%.2d:%.2d:%.2d.%1d ", d, h, m, s, ds);
 		unlock(Display);
-#endif
-
-		fprintf(stderr, "\r%4d:%.2d:%.2d:%.2d.%1d\n", d, h, m, s, ds);
-		n = sizeof(id) / sizeof(id[0]);
-		p = id;
-		fetchrq(p, n);
-		while (n-- > 0)
-			fprintf(stderr, "%c", *p++ ? '*' : ' ');
 
 		sleep(0, 100000);
 	}

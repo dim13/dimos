@@ -213,12 +213,12 @@ lock(uint8_t chan)
 		/* semaphore busy, go into wait queue */
 		TAILQ_REMOVE(&kern.rq, kern.cur, r_link);
 		TAILQ_INSERT_TAIL(&kern.wq[chan], kern.cur, w_link);
-		SWITCH();
 	} else {
 		/* occupy semaphore and continue */
 		kern.semaphore |= _BV(chan);
-		sei();
 	}
+
+	SWITCH();
 }
 
 void
@@ -284,15 +284,4 @@ void
 reboot(void)
 {
 	kern.reboot = 1;
-}
-
-void
-fetchrq(uint8_t *data, uint8_t len)
-{
-	struct task *tp;
-
-	memset(data, 0, len);
-	TAILQ_FOREACH(tp, &kern.rq, r_link)
-		if (tp->id < len)
-			data[tp->id] = 1;
 }

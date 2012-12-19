@@ -42,11 +42,9 @@ adc(void *arg)
 			unlock(Adc);
 		}
 
-#if 0
 		lock(Display);
 		fprintf(stderr, "\n%8lx%8x", now(), a->value[0]);
 		unlock(Display);
-#endif
 
 		sleep(0, 100000);
 	}
