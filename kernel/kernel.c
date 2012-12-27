@@ -77,7 +77,7 @@ ISR(TIMER1_COMPA_vect)
 
 	/* release waiting tasks */
 	first = TAILQ_FIRST(&kern.rq);
-	while ((tp = TAILQ_FIRST(&kern.tq)) && SPAN(now, tp->release) <= 0) {
+	while ((tp = TAILQ_FIRST(&kern.tq)) && SPAN(tp->release, now) > 0) {
 		TAILQ_REMOVE(&kern.tq, tp, t_link);
 		if (first)
 			TAILQ_INSERT_BEFORE(first, tp, r_link);
