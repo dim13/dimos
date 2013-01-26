@@ -94,7 +94,7 @@ ISR(TIMER1_COMPB_vect, ISR_NAKED)
 
 	pusha();
 
-	/* pick first RTR task and move him to tail of RQ */
+	/* pick the first RTR task and move it to tail of RQ */
 	if ((tp = TAILQ_FIRST(&kern.rq))) {
 		TAILQ_REMOVE(&kern.rq, tp, r_link);
 		TAILQ_INSERT_TAIL(&kern.rq, tp, r_link);
