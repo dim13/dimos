@@ -42,7 +42,6 @@ struct task {
 	uint32_t release;		/* release time */
 	uint16_t sp;			/* stack pointer */
 	uint8_t *stack;			/* stack area */
-	uint8_t id;			/* task id */
 	TAILQ_ENTRY(task) r_link;
 	TAILQ_ENTRY(task) t_link;
 	TAILQ_ENTRY(task) w_link;
@@ -58,7 +57,6 @@ struct kern {
 	struct task *cur;		/* current task */
 	uint16_t cycles;		/* clock high byte */
 	uint8_t semaphore;		/* bitmap */
-	uint8_t maxid;
 	uint8_t reboot;
 } kern;
 
@@ -151,14 +149,12 @@ init(uint8_t sema)
 
 	/* init idle task */
 	kern.idle = calloc(1, sizeof(struct task));
-	kern.idle->id = 0;
 	kern.idle->release = 0;
 	kern.idle->sp = SP;			/* not really needed */
 	kern.cur = kern.idle;
 
 	kern.cycles = 0;
 	kern.semaphore = 0;
-	kern.maxid = 0;
 	kern.reboot = 0;
 
 	wdt_enable(TIMEOUT);
@@ -196,7 +192,6 @@ exec(void (*fun)(void *), void *args, uint8_t stack)
 	sp -= 6;
 	memset(sp, 0, 6);		/* r26-r31 */
 
-	tp->id = ++kern.maxid;
 	tp->release = 0;
 	tp->sp = (uint16_t)sp;		/* SP */
 	TAILQ_INSERT_TAIL(&kern.rq, tp, r_link);
