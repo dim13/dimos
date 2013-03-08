@@ -21,27 +21,24 @@
 #include "kernel.h"
 #include "tasks.h"
 
-#define PIN	PB0
+#define FLASH(on, off)	do {	\
+	PORTB |= _BV(PB0);	\
+	sleep(0, (on));		\
+	PORTB &= ~_BV(PB0);	\
+	sleep(0, (off));	\
+} while (0)
 
 void
 heartbeat(void *arg)
 {
-	/* 80bpm: 100ms on, 50ms off, 100ms on, 500ms off */
+	DDRB |= _BV(PB0);
+	PORTB &= ~_BV(PB0);
 
-	DDRB |= _BV(PIN);
-	PORTB &= ~_BV(PIN);
+	/* 80 bpm */
 
 	for (;;) {
-		PORTB |= _BV(PIN);
-		sleep(0, 100000);
-
-		PORTB &= ~_BV(PIN);
-		sleep(0, 50000);
-
-		PORTB |= _BV(PIN);
-		sleep(0, 100000);
-
-		PORTB &= ~_BV(PIN);
-		sleep(0, 500000);
+		FLASH(100000, 100000);
+		FLASH(100000,  50000);
+		FLASH( 50000, 350000);
 	}
 }
