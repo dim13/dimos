@@ -52,7 +52,7 @@ transfer(int fd, struct page *p, int pages, int pagesize)
 		switch (get(fd)) {
 		case '.':
 			if (!(n % 10))
-				fprintf(stderr, " %d", n);
+				fprintf(stderr, " %d\a", n);
 			fprintf(stderr, ".");
 			maxerr = 0;
 			break;	/* success, next page */
@@ -72,7 +72,7 @@ transfer(int fd, struct page *p, int pages, int pagesize)
 
 fubar:
 
-	fprintf(stderr, "\nrebooting\n");
+	fprintf(stderr, "\nrebooting\a\n");
 	put('-', fd);
 
 	return 0;
