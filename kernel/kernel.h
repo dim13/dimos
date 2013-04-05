@@ -85,7 +85,6 @@ void sleep(uint32_t sec, uint32_t usec);
 uint32_t now(void);
 
 void reboot(void);
-void idle(void);
 
 /* __END_DECLS */
 
