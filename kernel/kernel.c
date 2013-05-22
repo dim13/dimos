@@ -36,7 +36,7 @@
 #define SPAN(from, to)		((int32_t)((to) - (from)))
 #define SLICE			USEC(200)
 #define TIMEOUT			WDTO_500MS
-#define SWITCH			TIMER1_COMPB_vect
+#define SWITCH			TIMER1_COMPA_vect
 
 struct task {
 	uint32_t release;		/* release time */
@@ -68,27 +68,7 @@ ISR(TIMER1_OVF_vect)
 	++kern.cycles;
 }
 
-ISR(TIMER1_COMPA_vect)
-{
-	struct task *tp, *first;
-	uint32_t now = NOW(kern.cycles, TCNT1);
-
-	/* release waiting tasks */
-	first = TAILQ_FIRST(&kern.rq);
-	while ((tp = TAILQ_FIRST(&kern.tq)) && SPAN(tp->release, now) > 0) {
-		TAILQ_REMOVE(&kern.tq, tp, t_link);
-		if (first)
-			TAILQ_INSERT_BEFORE(first, tp, r_link);
-		else
-			TAILQ_INSERT_TAIL(&kern.rq, tp, r_link);
-	}
-
-	/* set next wakeup timer */
-	if (tp)
-		OCR1A = TCNT1 + SPAN(now, tp->release);
-}
-
-ISR(TIMER1_COMPB_vect, ISR_NAKED)
+ISR(TIMER1_COMPA_vect, ISR_NAKED)
 {
 	struct task *tp;
 
@@ -107,11 +87,31 @@ ISR(TIMER1_COMPB_vect, ISR_NAKED)
 	SP = kern.cur->sp;
 
 	/* set next task switch timeout */
-	OCR1B = TCNT1 + SLICE;
+	OCR1A += SLICE;
 
 	popa();
 
 	reti();
+}
+
+ISR(TIMER1_COMPB_vect)
+{
+	struct task *tp, *rq;
+	uint32_t now = NOW(kern.cycles, TCNT1);
+
+	/* release waiting tasks */
+	rq = TAILQ_FIRST(&kern.rq);
+	while ((tp = TAILQ_FIRST(&kern.tq)) && SPAN(tp->release, now) >= 0) {
+		TAILQ_REMOVE(&kern.tq, tp, t_link);
+		if (rq)
+			TAILQ_INSERT_BEFORE(rq, tp, r_link);
+		else
+			TAILQ_INSERT_TAIL(&kern.rq, tp, r_link);
+	}
+
+	/* set next wakeup timer */
+	if (tp)
+		OCR1B = TCNT1 + SPAN(now, tp->release);
 }
 
 void
