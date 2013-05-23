@@ -112,6 +112,8 @@ ISR(TIMER1_COMPB_vect)
 	/* set next wakeup timer */
 	if (tp)
 		OCR1B = TCNT1 + SPAN(now, tp->release);
+	if (SPAN(now, tp->release) < SLICE)
+		OCR1A = OCR1B;
 }
 
 void
