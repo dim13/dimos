@@ -87,7 +87,7 @@ ISR(TIMER1_COMPA_vect, ISR_NAKED)
 	SP = kern.cur->sp;
 
 	/* set next task switch timeout */
-	OCR1A += SLICE;
+	OCR1A = TCNT1 + SLICE;
 
 	popa();
 
