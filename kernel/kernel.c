@@ -242,8 +242,11 @@ sleep(uint32_t sec, uint32_t usec)
 
 	cli();
 
-	kern.cur->release = NOW(kern.cycles, TCNT1) + SEC(sec) + USEC(usec);
+	/* remove current task from RTR queue */
 	TAILQ_REMOVE(&kern.rq, kern.cur, r_link);
+
+	/* set next wakeup time and put it on Wait queue */
+	kern.cur->release = NOW(kern.cycles, TCNT1) + SEC(sec) + USEC(usec);
 
 	/* find right place */
 	TAILQ_FOREACH(tp, &kern.tq, t_link)
