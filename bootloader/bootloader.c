@@ -22,10 +22,12 @@
 #include <string.h>
 #include "bootloader.h"
 
+#define MAXERR 3
+
 int
 transfer(int fd, struct page *p, int pages, int pagesize)
 {
-	int	n, off, maxerr = 3;
+	int	n, off, maxerr = MAXERR;
 	unsigned char sum;
 
 	fprintf(stderr, "waiting for bootloader ...");
@@ -54,7 +56,7 @@ transfer(int fd, struct page *p, int pages, int pagesize)
 			if (!(n % 10))
 				fprintf(stderr, " %d\a", n);
 			fprintf(stderr, ".");
-			maxerr = 0;
+			maxerr = MAXERR;
 			break;	/* success, next page */
 		case '!':
 			n--;	/* error stay on the same page */
