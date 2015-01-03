@@ -15,7 +15,7 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 /*
- * based on TinyRealTime by Dan Henriksson and Anton Cervin
+ * inspired by TinyRealTime by Dan Henriksson and Anton Cervin
  * http://www.control.lth.se/Publication/hen+04t.html
  */
 
