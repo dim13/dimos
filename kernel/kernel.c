@@ -70,10 +70,12 @@ ISR(TIMER1_OVF_vect)
 	++kern.cycles;
 }
 
+/* task switcher */
 ISR(TIMER1_COMPA_vect, ISR_NAKED)
 {
 	struct task *tp;
 
+	/* save state */
 	pusha();
 
 	/* pick the first RTR task and move it to tail of RQ */
@@ -91,11 +93,13 @@ ISR(TIMER1_COMPA_vect, ISR_NAKED)
 	/* set next task switch timeout */
 	OCR1A = TCNT1 + SLICE;
 
+	/* restore state */
 	popa();
 
 	reti();
 }
 
+/* task scheduler */
 ISR(TIMER1_COMPB_vect)
 {
 	struct task *tp, *rq;
@@ -159,6 +163,7 @@ init(uint8_t sema)
 	kern.semaphore = 0;
 	kern.reboot = 0;
 
+	/* reanable watchdog */
 	wdt_enable(TIMEOUT);
 
 	SWITCH();
