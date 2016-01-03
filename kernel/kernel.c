@@ -19,13 +19,15 @@
  * http://www.control.lth.se/Publication/hen+04t.html
  */
 
-#include <stdint.h>
-#include <stdlib.h>
-#include <string.h>
 #include <avr/io.h>
 #include <avr/interrupt.h>
 #include <avr/power.h>
 #include <avr/wdt.h>
+
+#include <stdint.h>
+#include <stdlib.h>
+#include <string.h>
+
 #include "kernel.h"
 #include "stack.h"
 #include "queue.h"

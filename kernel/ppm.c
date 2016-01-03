@@ -15,10 +15,12 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#include <stdint.h>
-#include <stdio.h>
 #include <avr/io.h>
 #include <avr/interrupt.h>
+
+#include <stdint.h>
+#include <stdio.h>
+
 #include "kernel.h"
 #include "tasks.h"
 
