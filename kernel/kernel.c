@@ -62,6 +62,7 @@ struct kern {
 	uint8_t reboot;
 } kern;
 
+/* count cycles */
 ISR(TIMER1_OVF_vect)
 {
 	if (!kern.reboot)
@@ -169,6 +170,7 @@ init(uint8_t sema)
 	SWITCH();
 }
 
+/* execute a new task */
 void
 exec(void (*fun)(void *), void *args, uint8_t stack)
 {
@@ -206,6 +208,7 @@ exec(void (*fun)(void *), void *args, uint8_t stack)
 	sei();
 }
 
+/* lock semaphore */
 void
 lock(uint8_t chan)
 {
@@ -223,6 +226,7 @@ lock(uint8_t chan)
 	SWITCH();
 }
 
+/* unlock semaphore */
 void
 unlock(uint8_t chan)
 {
@@ -242,6 +246,7 @@ unlock(uint8_t chan)
 	sei();
 }
 
+/* suspend task */
 void
 sleep(uint32_t sec, uint32_t usec)
 {
@@ -252,14 +257,15 @@ sleep(uint32_t sec, uint32_t usec)
 	/* remove current task from RTR queue */
 	TAILQ_REMOVE(&kern.rq, kern.cur, r_link);
 
-	/* set next wakeup time and put it on Wait queue */
+	/* set next wakeup time */
 	kern.cur->release = NOW(kern.cycles, TCNT1) + SEC(sec) + USEC(usec);
 
-	/* find right place */
+	/* find right place in time queue */
 	TAILQ_FOREACH(tp, &kern.tq, t_link)
 		if (SPAN(tp->release, kern.cur->release) < 0)
 			break;
 	
+	/* put task into time queue */
 	if (tp)
 		TAILQ_INSERT_BEFORE(tp, kern.cur, t_link);
 	else
@@ -273,8 +279,9 @@ terminate(void)
 {
 	cli();
 
-	/* TODO: free memory */
+	/* remove task from run queue */
 	TAILQ_REMOVE(&kern.rq, kern.cur, r_link);
+	/* TODO: free memory */
 
 	SWITCH();
 }
