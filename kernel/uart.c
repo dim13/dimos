@@ -19,11 +19,13 @@
 #define BAUD 9600
 #endif
 
-#include <stdint.h>
-#include <stdio.h>
 #include <avr/io.h>
 #include <avr/interrupt.h>
 #include <util/setbaud.h>		/* depends on BAUD and F_CPU */
+
+#include <stdint.h>
+#include <stdio.h>
+
 #include "kernel.h"
 #include "tasks.h"
 

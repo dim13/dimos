@@ -15,14 +15,16 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#include <assert.h>
 #include <sys/types.h>
+
+#include <assert.h>
+#include <fcntl.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <unistd.h>
-#include <fcntl.h>
-#include <termios.h>
 #include <string.h>
+#include <termios.h>
+#include <unistd.h>
+
 #include "bootloader.h"
 
 void

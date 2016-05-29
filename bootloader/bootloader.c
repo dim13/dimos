@@ -1,4 +1,4 @@
-/* $Id: bootloader.c,v 1.14 2014/10/23 14:23:49 demon Exp $ */
+/* $Id$ */
 /*
  * Copyright (c) 2011 Dimitri Sokolyuk <demon@dim13.org>
  *
@@ -18,8 +18,9 @@
 #include <err.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <unistd.h>
 #include <string.h>
+#include <unistd.h>
+
 #include "bootloader.h"
 
 #define MAXERR 3

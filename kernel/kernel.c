@@ -1,4 +1,4 @@
-/* $Id: kernel.c,v 1.121 2015/01/03 02:01:06 demon Exp $ */
+/* $Id$ */
 /*
  * Copyright (c) 2010 Dimitri Sokolyuk <demon@dim13.org>
  *
@@ -19,13 +19,15 @@
  * http://www.control.lth.se/Publication/hen+04t.html
  */
 
-#include <stdint.h>
-#include <stdlib.h>
-#include <string.h>
 #include <avr/io.h>
 #include <avr/interrupt.h>
 #include <avr/power.h>
 #include <avr/wdt.h>
+
+#include <stdint.h>
+#include <stdlib.h>
+#include <string.h>
+
 #include "kernel.h"
 #include "stack.h"
 #include "queue.h"
@@ -60,6 +62,7 @@ struct kern {
 	uint8_t reboot;
 } kern;
 
+/* count cycles */
 ISR(TIMER1_OVF_vect)
 {
 	if (!kern.reboot)
@@ -68,10 +71,12 @@ ISR(TIMER1_OVF_vect)
 	++kern.cycles;
 }
 
+/* task switcher */
 ISR(TIMER1_COMPA_vect, ISR_NAKED)
 {
 	struct task *tp;
 
+	/* save state */
 	pusha();
 
 	/* pick the first RTR task and move it to tail of RQ */
@@ -89,11 +94,13 @@ ISR(TIMER1_COMPA_vect, ISR_NAKED)
 	/* set next task switch timeout */
 	OCR1A = TCNT1 + SLICE;
 
+	/* restore state */
 	popa();
 
 	reti();
 }
 
+/* task scheduler */
 ISR(TIMER1_COMPB_vect)
 {
 	struct task *tp, *rq;
@@ -157,11 +164,13 @@ init(uint8_t sema)
 	kern.semaphore = 0;
 	kern.reboot = 0;
 
+	/* reanable watchdog */
 	wdt_enable(TIMEOUT);
 
 	SWITCH();
 }
 
+/* execute a new task */
 void
 exec(void (*fun)(void *), void *args, uint8_t stack)
 {
@@ -199,6 +208,7 @@ exec(void (*fun)(void *), void *args, uint8_t stack)
 	sei();
 }
 
+/* lock semaphore */
 void
 lock(uint8_t chan)
 {
@@ -216,6 +226,7 @@ lock(uint8_t chan)
 	SWITCH();
 }
 
+/* unlock semaphore */
 void
 unlock(uint8_t chan)
 {
@@ -235,6 +246,7 @@ unlock(uint8_t chan)
 	sei();
 }
 
+/* suspend task */
 void
 sleep(uint32_t sec, uint32_t usec)
 {
@@ -245,14 +257,15 @@ sleep(uint32_t sec, uint32_t usec)
 	/* remove current task from RTR queue */
 	TAILQ_REMOVE(&kern.rq, kern.cur, r_link);
 
-	/* set next wakeup time and put it on Wait queue */
+	/* set next wakeup time */
 	kern.cur->release = NOW(kern.cycles, TCNT1) + SEC(sec) + USEC(usec);
 
-	/* find right place */
+	/* find right place in time queue */
 	TAILQ_FOREACH(tp, &kern.tq, t_link)
 		if (SPAN(tp->release, kern.cur->release) < 0)
 			break;
 	
+	/* put task into time queue */
 	if (tp)
 		TAILQ_INSERT_BEFORE(tp, kern.cur, t_link);
 	else
@@ -266,8 +279,9 @@ terminate(void)
 {
 	cli();
 
-	/* TODO: free memory */
+	/* remove task from run queue */
 	TAILQ_REMOVE(&kern.rq, kern.cur, r_link);
+	/* TODO: free memory */
 
 	SWITCH();
 }
